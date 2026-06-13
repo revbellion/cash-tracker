@@ -13,6 +13,7 @@ class Income extends Model
         'amount',
         'description',
         'category',
+        'stock_transaction_id',
     ];
 
     protected function casts(): array

@@ -13,6 +13,7 @@ class Expense extends Model
         'category',
         'amount',
         'description',
+        'stock_transaction_id',
     ];
 
     protected function casts(): array
