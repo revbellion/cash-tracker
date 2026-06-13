@@ -11,6 +11,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\StockController;
 use App\Http\Controllers\SummaryController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,11 @@ Route::resource('bills', BillController::class)->only(['index', 'store', 'update
 Route::post('bills/{recurring_bill}/pay', [BillController::class, 'pay'])->name('bills.pay');
 Route::resource('product-categories', ProductCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
 Route::resource('products', ProductController::class)->only(['index', 'store', 'update', 'destroy']);
+Route::get('stock/in', [StockController::class, 'stockIn'])->name('stock.in');
+Route::post('stock/in', [StockController::class, 'storeIn'])->name('stock.in.store');
+Route::get('stock/sales', [StockController::class, 'sales'])->name('stock.sales');
+Route::post('stock/sales', [StockController::class, 'storeSale'])->name('stock.sales.store');
+Route::get('stock/report', [StockController::class, 'report'])->name('stock.report');
 Route::resource('receivables', ReceivableController::class)->only(['index', 'store', 'update', 'destroy']);
 Route::post('receivables/pay', [ReceivableController::class, 'pay'])->name('receivables.pay');
 

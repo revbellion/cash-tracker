@@ -523,7 +523,7 @@
         </div>
 
         @php
-            $stokActive = request()->routeIs('product-categories.*') || request()->routeIs('products.*');
+            $stokActive = request()->routeIs('product-categories.*') || request()->routeIs('products.*') || request()->routeIs('stock.*');
         @endphp
         <div class="nav-item">
             <a class="nav-link group-header {{ $stokActive ? 'active' : '' }}"
@@ -541,6 +541,18 @@
                 <a class="nav-link sub-link {{ request()->routeIs('product-categories.*') ? 'active' : '' }}" href="{{ route('product-categories.index') }}">
                     <i class="fas fa-tag"></i>
                     <span class="nav-label">Kategori</span>
+                </a>
+                <a class="nav-link sub-link {{ request()->routeIs('stock.in') ? 'active' : '' }}" href="{{ route('stock.in') }}">
+                    <i class="fas fa-arrow-down"></i>
+                    <span class="nav-label">Stok Masuk</span>
+                </a>
+                <a class="nav-link sub-link {{ request()->routeIs('stock.sales') ? 'active' : '' }}" href="{{ route('stock.sales') }}">
+                    <i class="fas fa-arrow-up"></i>
+                    <span class="nav-label">Penjualan</span>
+                </a>
+                <a class="nav-link sub-link {{ request()->routeIs('stock.report') ? 'active' : '' }}" href="{{ route('stock.report') }}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="nav-label">Laporan</span>
                 </a>
             </div>
         </div>
