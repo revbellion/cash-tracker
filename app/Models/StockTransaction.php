@@ -9,7 +9,7 @@ class StockTransaction extends Model
 {
     protected $fillable = [
         'product_id', 'type', 'qty', 'price', 'account_id',
-        'description', 'date',
+        'description', 'date', 'income_id', 'receipt_id',
     ];
 
     protected function casts(): array
@@ -27,6 +27,11 @@ class StockTransaction extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'account_id');
+    }
+
+    public function income(): BelongsTo
+    {
+        return $this->belongsTo(Income::class);
     }
 
     public function scopeType($query, string $type)

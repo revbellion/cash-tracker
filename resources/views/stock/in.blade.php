@@ -97,7 +97,7 @@
                                 <td>{{ $trx->account->name ?? '-' }}</td>
                                 <td>{{ $trx->description ?? '-' }}</td>
                                 <td class="pe-3">
-                                    <form autocomplete="off" action="{{ route('stock.transactions.destroy', $trx->id) }}" method="POST" class="d-inline"
+                                    <form autocomplete="off" action="{{ route('stock.in.destroy', $trx->id) }}" method="POST" class="d-inline"
                                         onsubmit="return confirm('Yakin hapus stok masuk {{ $trx->product->name ?? '' }} ({{ $trx->qty }} {{ $trx->product->unit ?? '' }})?')">
                                         @csrf
                                         @method('DELETE')

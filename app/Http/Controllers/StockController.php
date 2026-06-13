@@ -49,32 +49,37 @@ class StockController extends Controller
     public function storeSale(Request $request)
     {
         $validated = $request->validate([
-            'product_id'  => 'required|exists:products,id',
-            'qty'         => 'required|integer|min:1',
-            'price'       => 'required|integer|min:0',
-            'account_id'  => 'required|exists:accounts,id',
-            'date'        => 'required|date',
-            'description' => 'nullable|string|max:255',
+            'items'            => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty'      => 'required|integer|min:1',
+            'items.*.price'    => 'required|integer|min:0',
+            'items.*.desc'     => 'nullable|string|max:255',
+            'account_id'       => 'required|exists:accounts,id',
+            'date'             => 'required|date',
         ]);
 
         try {
-            $this->stockService->recordSale($validated);
+            $receiptId = $this->stockService->recordSale($validated['items'], [
+                'account_id' => $validated['account_id'],
+                'date'       => $validated['date'],
+            ]);
         } catch (\InvalidArgumentException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 
-        return redirect()->back()->with('success', 'Penjualan berhasil dicatat.');
+        return redirect()->back()->with('success', 'Penjualan berhasil dicatat. No: ' . $receiptId);
     }
 
-    public function destroy(StockTransaction $stockTransaction)
+    public function destroy(string $receiptId)
     {
-        if ($stockTransaction->type === 'in') {
-            $this->stockService->deleteStockIn($stockTransaction);
-            return redirect()->back()->with('success', 'Transaksi stok masuk berhasil dihapus.');
-        }
-
-        $this->stockService->deleteSale($stockTransaction);
+        $this->stockService->deleteSale($receiptId);
         return redirect()->back()->with('success', 'Penjualan berhasil dihapus.');
+    }
+
+    public function destroyStockIn(StockTransaction $stockTransaction)
+    {
+        $this->stockService->deleteStockIn($stockTransaction);
+        return redirect()->back()->with('success', 'Transaksi stok masuk berhasil dihapus.');
     }
 
     public function opname()
