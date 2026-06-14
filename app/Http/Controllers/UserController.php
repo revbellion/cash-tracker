@@ -11,15 +11,6 @@ use Illuminate\View\View;
 
 class UserController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            if (!Auth::user()?->isAdmin()) {
-                abort(403, 'Hanya admin yang bisa mengakses halaman ini.');
-            }
-            return $next($request);
-        });
-    }
     public function index(): View
     {
         $users = User::orderBy('created_at', 'desc')->get();

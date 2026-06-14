@@ -27,7 +27,7 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->permissions === null;
+        return empty($this->permissions);
     }
 
     public function hasPermission(string $key): bool
