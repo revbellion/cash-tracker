@@ -497,12 +497,14 @@
         <span>ADI CELL | Cash Tracker</span>
     </div>
     <div class="sidebar-nav">
+        @if(Auth::user()->hasPermission('dashboard'))
         <div class="nav-item">
             <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                 <i class="fas fa-chart-pie"></i>
                 <span class="nav-label">Dashboard</span>
             </a>
         </div>
+        @endif
 
         @php
             $hasTransaksi = Auth::user()->hasPermission('mutations') || Auth::user()->hasPermission('expenses') || Auth::user()->hasPermission('incomes') || Auth::user()->hasPermission('receivables') || Auth::user()->hasPermission('summary');

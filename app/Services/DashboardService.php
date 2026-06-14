@@ -147,6 +147,43 @@ class DashboardService
         ];
     }
 
+    public function getKasirData(): array
+    {
+        $today = now()->toDateString();
+
+        $products = Product::with('category')->active()->get();
+        $totalStockValue = $products->sum('stock_value');
+        $lowStockCount = $products->filter(fn($p) => $p->is_low_stock)->count();
+        $lowStockProducts = $products->filter(fn($p) => $p->is_low_stock)->take(10);
+
+        $todaySales = StockTransaction::where('type', 'out')
+            ->whereDate('date', $today)
+            ->with('product')
+            ->get();
+
+        $todayRevenue = $todaySales->sum(fn($t) => $t->qty * $t->price);
+        $todayItemsSold = $todaySales->sum('qty');
+        $todayCount = $todaySales->groupBy('receipt_id')->count();
+
+        $recentReceipts = StockTransaction::where('type', 'out')
+            ->whereDate('date', $today)
+            ->selectRaw('receipt_id, SUM(qty * price) as total, COUNT(*) as items')
+            ->groupBy('receipt_id')
+            ->orderByDesc('receipt_id')
+            ->take(10)
+            ->get();
+
+        return [
+            'todayRevenue' => $todayRevenue,
+            'todayItemsSold' => $todayItemsSold,
+            'todayCount' => $todayCount,
+            'totalStockValue' => $totalStockValue,
+            'lowStockCount' => $lowStockCount,
+            'lowStockProducts' => $lowStockProducts,
+            'recentReceipts' => $recentReceipts,
+        ];
+    }
+
     public function getChartData(): array
     {
         $labels = [];

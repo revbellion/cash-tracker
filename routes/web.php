@@ -29,7 +29,7 @@ Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
 
     // Dashboard — semua user bisa
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::middleware('permission:dashboard')->get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Stok — akses berdasar permission
     Route::middleware('permission:stock_in')->group(function () {

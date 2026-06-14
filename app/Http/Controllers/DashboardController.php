@@ -8,6 +8,7 @@ use App\Models\Income;
 use App\Services\BillService;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -18,26 +19,32 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
+        $user = Auth::user();
         $period = $request->get('period', now()->format('Y-m'));
 
-        $data = $this->dashboardService->getDashboardData($period);
-        $data['period'] = $period;
-        $data['accountBalances'] = $data['accounts']->pluck('balance', 'id');
-        $data['accountList'] = Account::active()->get();
-        $data['categories'] = Expense::select('category')->distinct()->pluck('category');
-        $data['incomeCategories'] = Income::select('category')->distinct()->pluck('category');
+        if ($user->isAdmin()) {
+            $data = $this->dashboardService->getDashboardData($period);
+            $data['period'] = $period;
+            $data['accountBalances'] = $data['accounts']->pluck('balance', 'id');
+            $data['accountList'] = Account::active()->get();
+            $data['categories'] = Expense::select('category')->distinct()->pluck('category');
+            $data['incomeCategories'] = Income::select('category')->distinct()->pluck('category');
 
-        [$year, $month] = explode('-', $period);
-        $start = sprintf('%04d-%02d-01', $year, $month);
-        $end = \Carbon\Carbon::parse($start)->endOfMonth();
-        $data['expenseCategories'] = Expense::whereBetween('date', [$start, $end])
-            ->selectRaw('category, SUM(amount) as total')
-            ->groupBy('category')
-            ->orderByDesc('total')
-            ->pluck('total', 'category');
+            [$year, $month] = explode('-', $period);
+            $start = sprintf('%04d-%02d-01', $year, $month);
+            $end = \Carbon\Carbon::parse($start)->endOfMonth();
+            $data['expenseCategories'] = Expense::whereBetween('date', [$start, $end])
+                ->selectRaw('category, SUM(amount) as total')
+                ->groupBy('category')
+                ->orderByDesc('total')
+                ->pluck('total', 'category');
 
-        $data['billSummary'] = $this->billService->getDueBillsCount($period);
+            $data['billSummary'] = $this->billService->getDueBillsCount($period);
 
-        return view('dashboard.index', $data);
+            return view('dashboard.index', $data);
+        }
+
+        $data = $this->dashboardService->getKasirData();
+        return view('dashboard.kasir', $data);
     }
 }

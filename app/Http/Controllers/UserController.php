@@ -15,6 +15,7 @@ class UserController extends Controller
     {
         $users = User::orderBy('created_at', 'desc')->get();
         $permissionKeys = [
+            ['key' => 'dashboard', 'label' => 'Dashboard'],
             ['key' => 'pos', 'label' => 'POS Penjualan'],
             ['key' => 'stock_in', 'label' => 'Stok Masuk'],
             ['key' => 'stock_opname', 'label' => 'Stok Opname'],
@@ -28,6 +29,7 @@ class UserController extends Controller
     public function create(): View
     {
         $permissionKeys = [
+            ['key' => 'dashboard', 'label' => 'Dashboard'],
             ['key' => 'pos', 'label' => 'POS Penjualan'],
             ['key' => 'stock_in', 'label' => 'Stok Masuk'],
             ['key' => 'stock_opname', 'label' => 'Stok Opname'],
@@ -45,7 +47,7 @@ class UserController extends Controller
             'username' => 'required|string|max:50|unique:users,username',
             'password' => 'required|string|min:6',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:pos,stock_in,stock_opname,products,categories,stock_report',
+            'permissions.*' => 'string|in:dashboard,pos,stock_in,stock_opname,products,categories,stock_report',
         ]);
 
         User::create([
@@ -61,6 +63,7 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         $permissionKeys = [
+            ['key' => 'dashboard', 'label' => 'Dashboard'],
             ['key' => 'pos', 'label' => 'POS Penjualan'],
             ['key' => 'stock_in', 'label' => 'Stok Masuk'],
             ['key' => 'stock_opname', 'label' => 'Stok Opname'],
@@ -78,7 +81,7 @@ class UserController extends Controller
             'username' => 'required|string|max:50|unique:users,username,' . $user->id,
             'password' => 'nullable|string|min:6',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:pos,stock_in,stock_opname,products,categories,stock_report',
+            'permissions.*' => 'string|in:dashboard,pos,stock_in,stock_opname,products,categories,stock_report',
         ]);
 
         $data = [
