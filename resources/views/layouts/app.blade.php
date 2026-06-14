@@ -134,6 +134,33 @@
         justify-content: center;
         gap: 0.3rem;
         transition: padding 0.3s;
+        flex-wrap: wrap;
+    }
+    .sidebar-footer .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.8);
+        width: 100%;
+        justify-content: center;
+    }
+    .sidebar-footer .user-info i { font-size: 0.7rem; }
+    .sidebar-footer .btn-logout {
+        background: rgba(255,255,255,0.08);
+        border: none;
+        color: rgba(255,255,255,0.6);
+        font-size: 0.65rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-decoration: none;
+    }
+    .sidebar-footer .btn-logout:hover {
+        background: rgba(239,68,68,0.3);
+        color: #fca5a5;
     }
 
     .main-content {
@@ -478,6 +505,10 @@
         </div>
 
         @php
+            $hasTransaksi = Auth::user()->hasPermission('mutations') || Auth::user()->hasPermission('expenses') || Auth::user()->hasPermission('incomes') || Auth::user()->hasPermission('receivables') || Auth::user()->hasPermission('summary');
+        @endphp
+        @if($hasTransaksi)
+        @php
             $transaksiActive = request()->routeIs('mutations.*') || request()->routeIs('expenses.*') || request()->routeIs('incomes.*') || request()->routeIs('receivables.*') || request()->routeIs('summary.*');
         @endphp
         <div class="nav-item">
@@ -489,18 +520,25 @@
                 <i class="fas fa-chevron-down caret {{ $transaksiActive ? 'open' : '' }}"></i>
             </a>
             <div class="collapse submenu {{ $transaksiActive ? 'show' : '' }}" id="collapseTransaksi">
+                @if(Auth::user()->hasPermission('mutations'))
                 <a class="nav-link sub-link {{ request()->routeIs('mutations.*') ? 'active' : '' }}" href="{{ route('mutations.index') }}">
                     <i class="fas fa-arrow-right-arrow-left"></i>
                     <span class="nav-label">Mutasi</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('expenses'))
                 <a class="nav-link sub-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}" href="{{ route('expenses.index') }}">
                     <i class="fas fa-shopping-cart"></i>
                     <span class="nav-label">Pengeluaran</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('incomes'))
                 <a class="nav-link sub-link {{ request()->routeIs('incomes.*') ? 'active' : '' }}" href="{{ route('incomes.index') }}">
                     <i class="fas fa-hand-holding-usd"></i>
                     <span class="nav-label">Pendapatan</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('receivables'))
                 <a class="nav-link sub-link {{ request()->routeIs('receivables.*') ? 'active' : '' }}" href="{{ route('receivables.index') }}">
                     <i class="fas fa-book"></i>
                     <span class="nav-label">Piutang</span>
@@ -508,19 +546,25 @@
                         <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;padding:0.2em 0.5em;">{{ $unpaidPiutangCount }}</span>
                     @endif
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('summary'))
                 <a class="nav-link sub-link {{ request()->routeIs('summary.*') ? 'active' : '' }}" href="{{ route('summary.index') }}">
                     <i class="fas fa-chart-bar"></i>
                     <span class="nav-label">Ringkasan</span>
                 </a>
+                @endif
             </div>
         </div>
+        @endif
 
+        @if(Auth::user()->hasPermission('bills'))
         <div class="nav-item">
             <a class="nav-link {{ request()->routeIs('bills.*') ? 'active' : '' }}" href="{{ route('bills.index') }}">
                 <i class="fas fa-file-invoice"></i>
                 <span class="nav-label">Tagihan</span>
             </a>
         </div>
+        @endif
 
         @php
             $stokActive = request()->routeIs('product-categories.*') || request()->routeIs('products.*') || request()->routeIs('stock.*');
@@ -534,35 +578,48 @@
                 <i class="fas fa-chevron-down caret {{ $stokActive ? 'open' : '' }}"></i>
             </a>
             <div class="collapse submenu {{ $stokActive ? 'show' : '' }}" id="collapseStok">
+                @if(Auth::user()->hasPermission('products'))
                 <a class="nav-link sub-link {{ request()->routeIs('products.*') ? 'active' : '' }}" href="{{ route('products.index') }}">
                     <i class="fas fa-cube"></i>
                     <span class="nav-label">Barang</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('categories'))
                 <a class="nav-link sub-link {{ request()->routeIs('product-categories.*') ? 'active' : '' }}" href="{{ route('product-categories.index') }}">
                     <i class="fas fa-tag"></i>
                     <span class="nav-label">Kategori</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('stock_in'))
                 <a class="nav-link sub-link {{ request()->routeIs('stock.in') ? 'active' : '' }}" href="{{ route('stock.in') }}">
                     <i class="fas fa-arrow-down"></i>
                     <span class="nav-label">Stok Masuk</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('pos'))
                 <a class="nav-link sub-link {{ request()->routeIs('stock.sales') ? 'active' : '' }}" href="{{ route('stock.sales') }}">
                     <i class="fas fa-arrow-up"></i>
                     <span class="nav-label">Penjualan</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('stock_opname'))
                 <a class="nav-link sub-link {{ request()->routeIs('stock.opname') ? 'active' : '' }}" href="{{ route('stock.opname') }}">
                     <i class="fas fa-clipboard-list"></i>
                     <span class="nav-label">Stok Opname</span>
                 </a>
+                @endif
+                @if(Auth::user()->hasPermission('stock_report'))
                 <a class="nav-link sub-link {{ request()->routeIs('stock.report') ? 'active' : '' }}" href="{{ route('stock.report') }}">
                     <i class="fas fa-chart-bar"></i>
                     <span class="nav-label">Laporan</span>
                 </a>
+                @endif
             </div>
         </div>
 
+        @if(Auth::user()->isAdmin())
         @php
-            $pengaturanActive = request()->routeIs('opening-balances.*') || request()->routeIs('accounts.*') || request()->routeIs('backups.*');
+            $pengaturanActive = request()->routeIs('opening-balances.*') || request()->routeIs('accounts.*') || request()->routeIs('backups.*') || request()->routeIs('users.*');
         @endphp
         <div class="nav-item">
             <a class="nav-link group-header {{ $pengaturanActive ? 'active' : '' }}"
@@ -573,6 +630,10 @@
                 <i class="fas fa-chevron-down caret {{ $pengaturanActive ? 'open' : '' }}"></i>
             </a>
             <div class="collapse submenu {{ $pengaturanActive ? 'show' : '' }}" id="collapsePengaturan">
+                <a class="nav-link sub-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-label">Kelola User</span>
+                </a>
                 <a class="nav-link sub-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}" href="{{ route('accounts.index') }}">
                     <i class="fas fa-wallet"></i>
                     <span class="nav-label">Akun</span>
@@ -587,8 +648,17 @@
                 </a>
             </div>
         </div>
+        @endif
     </div>
     <div class="sidebar-footer">
+        <div class="user-info">
+            <i class="fas fa-user-circle"></i>
+            <span>{{ Auth::user()->name }}</span>
+            <form method="POST" action="{{ route('logout') }}" style="display:inline;">
+                @csrf
+                <button type="submit" class="btn-logout"><i class="fas fa-sign-out-alt me-1"></i>Keluar</button>
+            </form>
+        </div>
         <button class="dark-mode-btn" onclick="toggleDarkMode()" title="Toggle dark mode">
             <i class="fas fa-moon" id="darkModeIcon"></i>
         </button>

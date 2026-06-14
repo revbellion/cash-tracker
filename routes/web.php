@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OpeningBalanceController;
 use App\Http\Controllers\MutationController;
@@ -13,45 +14,93 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SummaryController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+// Auth routes (guest only)
+Route::middleware('guest')->group(function () {
+    Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [LoginController::class, 'login']);
+});
 
-Route::resource('opening-balances', OpeningBalanceController::class)->only(['index', 'store', 'update']);
-Route::resource('mutations', MutationController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::resource('incomes', IncomeController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::resource('accounts', AccountController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::resource('bills', BillController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::post('bills/{recurring_bill}/pay', [BillController::class, 'pay'])->name('bills.pay');
-Route::resource('product-categories', ProductCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::get('products/{product}/history', [ProductController::class, 'history'])->name('products.history');
-Route::resource('products', ProductController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::get('stock/in', [StockController::class, 'stockIn'])->name('stock.in');
-Route::post('stock/in', [StockController::class, 'storeIn'])->name('stock.in.store');
-Route::get('stock/sales', [StockController::class, 'sales'])->name('stock.sales');
-Route::post('stock/sales', [StockController::class, 'storeSale'])->name('stock.sales.store');
-Route::get('stock/report', [StockController::class, 'report'])->name('stock.report');
-Route::get('stock/opname', [StockController::class, 'opname'])->name('stock.opname');
-Route::post('stock/opname', [StockController::class, 'storeOpname'])->name('stock.opname.store');
-Route::delete('stock/in/{stock_transaction}', [StockController::class, 'destroyStockIn'])->name('stock.in.destroy');
-Route::get('stock/receipt/{receiptId}', [StockController::class, 'receipt'])->name('stock.receipt');
-Route::get('stock/receipt/{receiptId}/pdf', [StockController::class, 'receiptPdf'])->name('stock.receipt.pdf');
-Route::delete('stock/sales/{receiptId}', [StockController::class, 'destroy'])->name('stock.sales.destroy');
-Route::resource('receivables', ReceivableController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::post('receivables/pay', [ReceivableController::class, 'pay'])->name('receivables.pay');
+Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
-Route::get('backups/download', [BackupController::class, 'download'])->name('backups.download');
-Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
-Route::post('backups/reset', [BackupController::class, 'resetData'])->name('backups.reset');
-Route::get('receivables/{receivable}/whatsapp', [ReceivableController::class, 'whatsappLink'])->name('receivables.whatsapp');
-Route::get('summary', [SummaryController::class, 'index'])->name('summary.index');
+// All protected routes
+Route::middleware('auth')->group(function () {
 
-Route::get('incomes/export', [IncomeController::class, 'export'])->name('incomes.export');
-Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
-Route::get('mutations/export', [MutationController::class, 'export'])->name('mutations.export');
-Route::get('receivables/export', [ReceivableController::class, 'export'])->name('receivables.export');
+    // Dashboard — semua user bisa
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-// Auth routes removed — single-user app
-// require __DIR__.'/auth.php';
+    // Stok — akses berdasar permission
+    Route::middleware('permission:stock_in')->group(function () {
+        Route::get('stock/in', [StockController::class, 'stockIn'])->name('stock.in');
+        Route::post('stock/in', [StockController::class, 'storeIn'])->name('stock.in.store');
+    });
+    Route::middleware('permission:pos')->group(function () {
+        Route::get('stock/sales', [StockController::class, 'sales'])->name('stock.sales');
+        Route::post('stock/sales', [StockController::class, 'storeSale'])->name('stock.sales.store');
+    });
+    Route::middleware('permission:stock_report')->group(function () {
+        Route::get('stock/report', [StockController::class, 'report'])->name('stock.report');
+    });
+    Route::middleware('permission:stock_opname')->group(function () {
+        Route::get('stock/opname', [StockController::class, 'opname'])->name('stock.opname');
+        Route::post('stock/opname', [StockController::class, 'storeOpname'])->name('stock.opname.store');
+    });
+    // Receipt — siapapun yang punya akses POS atau Stock In bisa lihat
+    Route::get('stock/receipt/{receiptId}', [StockController::class, 'receipt'])->name('stock.receipt');
+    Route::get('stock/receipt/{receiptId}/pdf', [StockController::class, 'receiptPdf'])->name('stock.receipt.pdf');
+    // Hapus transaksi — admin only (tidak ada permission key khusus di fase 1)
+    Route::delete('stock/in/{stock_transaction}', [StockController::class, 'destroyStockIn'])->name('stock.in.destroy');
+    Route::delete('stock/sales/{receiptId}', [StockController::class, 'destroy'])->name('stock.sales.destroy');
+
+    // Produk — akses berdasar permission products
+    Route::middleware('permission:products')->group(function () {
+        Route::get('products', [ProductController::class, 'index'])->name('products.index');
+        Route::post('products', [ProductController::class, 'store'])->name('products.store');
+        Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+        Route::get('products/{product}/history', [ProductController::class, 'history'])->name('products.history');
+    });
+
+    // Kategori — middleware permission:categories
+    Route::middleware('permission:categories')->group(function () {
+        Route::get('product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+        Route::post('product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
+        Route::put('product-categories/{product_category}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+        Route::delete('product-categories/{product_category}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+    });
+
+    // Keuangan — middleware permission multi-key (salah satu boleh akses)
+    Route::middleware('permission:accounts,mutations,incomes,expenses,bills,summary,backup,receivables')->group(function () {
+        Route::resource('accounts', AccountController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('mutations', MutationController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('incomes', IncomeController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('bills', BillController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('bills/{recurring_bill}/pay', [BillController::class, 'pay'])->name('bills.pay');
+        Route::resource('receivables', ReceivableController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('receivables/pay', [ReceivableController::class, 'pay'])->name('receivables.pay');
+        Route::get('receivables/{receivable}/whatsapp', [ReceivableController::class, 'whatsappLink'])->name('receivables.whatsapp');
+        Route::resource('opening-balances', OpeningBalanceController::class)->only(['index', 'store', 'update']);
+        Route::get('summary', [SummaryController::class, 'index'])->name('summary.index');
+        Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::get('backups/download', [BackupController::class, 'download'])->name('backups.download');
+        Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
+        Route::post('backups/reset', [BackupController::class, 'resetData'])->name('backups.reset');
+        Route::get('incomes/export', [IncomeController::class, 'export'])->name('incomes.export');
+        Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
+        Route::get('mutations/export', [MutationController::class, 'export'])->name('mutations.export');
+        Route::get('receivables/export', [ReceivableController::class, 'export'])->name('receivables.export');
+    });
+
+    // Users management — cuma admin (isAdmin = permissions null)
+    // Route ini harus dipanggil setelah group middleware di atas karena overlapping
+    // Middleware manual cek di controller via UserController
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('users', [UserController::class, 'store'])->name('users.store');
+    Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+});
