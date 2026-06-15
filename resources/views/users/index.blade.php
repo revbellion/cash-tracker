@@ -13,6 +13,7 @@
 
 <div class="card card-modern">
     <div class="card-body p-0">
+        <div class="table-responsive">
         <table class="table table-modern mb-0">
             <thead>
                 <tr>
@@ -40,7 +41,7 @@
                                 <span class="text-muted" style="font-size:0.8rem;">Semua modul</span>
                             @else
                                 @php
-                                    $labels = ['pos'=>'POS','stock_in'=>'Stok Masuk','stock_opname'=>'Opname','products'=>'Barang','categories'=>'Kategori','stock_report'=>'Laporan'];
+                                    $labels = ['dashboard'=>'Dashboard','pos'=>'POS','stock_in'=>'Stok Masuk','stock_opname'=>'Opname','products'=>'Barang','categories'=>'Kategori','stock_report'=>'Laporan','accounts'=>'Akun','mutations'=>'Mutasi','incomes'=>'Pemasukan','expenses'=>'Pengeluaran','receivables'=>'Piutang','bills'=>'Tagihan','summary'=>'Ringkasan','cash_counter'=>'Cash Counter'];
                                 @endphp
                                 @foreach($user->permissions ?? [] as $p)
                                     <span class="badge bg-info" style="font-size:0.65rem;margin:1px;">{{ $labels[$p] ?? $p }}</span>
@@ -64,6 +65,13 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center px-3 py-2 summary-bar" style="border-top:2px solid var(--border-subtle);">
+        <div>
+            <span style="font-size:0.8rem;color:var(--text-muted);">Total {{ $totalUsers }} user</span>
+        </div>
+        <div></div>
     </div>
 </div>
 @endsection

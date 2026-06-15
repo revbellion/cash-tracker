@@ -49,9 +49,13 @@ class Receivable extends Model
     public function getStatusBadgeAttribute(): string
     {
         if ($this->status === 'paid') {
-            return '<span class="label label-success">Lunas</span>';
+            return '<span class="badge bg-success">Lunas</span>';
         }
 
-        return '<span class="label label-danger">Belum</span>';
+        if ($this->due_date && $this->due_date->startOfDay()->lt(now()->startOfDay())) {
+            return '<span class="badge bg-danger">Telat</span>';
+        }
+
+        return '<span class="badge bg-warning text-dark">Belum</span>';
     }
 }

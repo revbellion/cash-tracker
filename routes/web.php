@@ -14,13 +14,14 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SummaryController;
+use App\Http\Controllers\CashCounterController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes (guest only)
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login']);
+    Route::post('login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 });
 
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
@@ -47,12 +48,16 @@ Route::middleware('auth')->group(function () {
         Route::get('stock/opname', [StockController::class, 'opname'])->name('stock.opname');
         Route::post('stock/opname', [StockController::class, 'storeOpname'])->name('stock.opname.store');
     });
-    // Receipt — siapapun yang punya akses POS atau Stock In bisa lihat
-    Route::get('stock/receipt/{receiptId}', [StockController::class, 'receipt'])->name('stock.receipt');
-    Route::get('stock/receipt/{receiptId}/pdf', [StockController::class, 'receiptPdf'])->name('stock.receipt.pdf');
-    // Hapus transaksi — admin only (tidak ada permission key khusus di fase 1)
-    Route::delete('stock/in/{stock_transaction}', [StockController::class, 'destroyStockIn'])->name('stock.in.destroy');
-    Route::delete('stock/sales/{receiptId}', [StockController::class, 'destroy'])->name('stock.sales.destroy');
+    // Receipt — akses untuk user dengan permission POS atau Stock In
+    Route::middleware('permission:pos,stock_in')->group(function () {
+        Route::get('stock/receipt/{receiptId}', [StockController::class, 'receipt'])->name('stock.receipt');
+        Route::get('stock/receipt/{receiptId}/pdf', [StockController::class, 'receiptPdf'])->name('stock.receipt.pdf');
+    });
+    // Hapus transaksi — admin only
+    Route::middleware('admin')->group(function () {
+        Route::delete('stock/in/{stock_transaction}', [StockController::class, 'destroyStockIn'])->name('stock.in.destroy');
+        Route::delete('stock/sales/{receiptId}', [StockController::class, 'destroy'])->name('stock.sales.destroy');
+    });
 
     // Produk — akses berdasar permission products
     Route::middleware('permission:products')->group(function () {
@@ -71,27 +76,53 @@ Route::middleware('auth')->group(function () {
         Route::delete('product-categories/{product_category}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
     });
 
-    // Keuangan — middleware permission multi-key (salah satu boleh akses)
-    Route::middleware('permission:accounts,mutations,incomes,expenses,bills,summary,backup,receivables')->group(function () {
+    // Keuangan — permission per modul
+    Route::middleware('permission:accounts')->group(function () {
         Route::resource('accounts', AccountController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('opening-balances', OpeningBalanceController::class)->only(['index', 'store', 'update']);
+    });
+    Route::middleware('permission:mutations')->group(function () {
         Route::resource('mutations', MutationController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::get('mutations/export', [MutationController::class, 'export'])->name('mutations.export');
+    });
+    Route::middleware('permission:incomes')->group(function () {
         Route::resource('incomes', IncomeController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::get('incomes/export', [IncomeController::class, 'export'])->name('incomes.export');
+    });
+    Route::middleware('permission:expenses')->group(function () {
         Route::resource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
+    });
+    Route::middleware('permission:bills')->group(function () {
         Route::resource('bills', BillController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::post('bills/{recurring_bill}/pay', [BillController::class, 'pay'])->name('bills.pay');
+    });
+    Route::middleware('permission:receivables')->group(function () {
         Route::resource('receivables', ReceivableController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::post('receivables/pay', [ReceivableController::class, 'pay'])->name('receivables.pay');
         Route::get('receivables/{receivable}/whatsapp', [ReceivableController::class, 'whatsappLink'])->name('receivables.whatsapp');
-        Route::resource('opening-balances', OpeningBalanceController::class)->only(['index', 'store', 'update']);
+        Route::get('receivables/export', [ReceivableController::class, 'export'])->name('receivables.export');
+    });
+    Route::middleware('permission:summary')->group(function () {
         Route::get('summary', [SummaryController::class, 'index'])->name('summary.index');
+    });
+
+    // Backup & reset data — admin only
+    Route::middleware('admin')->group(function () {
         Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
         Route::get('backups/download', [BackupController::class, 'download'])->name('backups.download');
         Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');
         Route::post('backups/reset', [BackupController::class, 'resetData'])->name('backups.reset');
-        Route::get('incomes/export', [IncomeController::class, 'export'])->name('incomes.export');
-        Route::get('expenses/export', [ExpenseController::class, 'export'])->name('expenses.export');
-        Route::get('mutations/export', [MutationController::class, 'export'])->name('mutations.export');
-        Route::get('receivables/export', [ReceivableController::class, 'export'])->name('receivables.export');
+    });
+
+    // Cash Counter
+    Route::middleware('permission:cash_counter')->prefix('cash-counter')->name('cash-counter.')->group(function () {
+        Route::get('/', [CashCounterController::class, 'index'])->name('index');
+        Route::get('/history', [CashCounterController::class, 'history'])->name('history');
+        Route::post('/sessions', [CashCounterController::class, 'store'])->name('sessions.store');
+        Route::get('/sessions/{session}', [CashCounterController::class, 'show'])->name('sessions.show');
+        Route::put('/sessions/{session}', [CashCounterController::class, 'update'])->name('sessions.update');
+        Route::delete('/sessions/{session}', [CashCounterController::class, 'destroy'])->name('sessions.destroy');
     });
 
     // Users management — cuma admin

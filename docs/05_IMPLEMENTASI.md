@@ -1,80 +1,157 @@
 # RENCANA IMPLEMENTASI (ARSIP — Aplikasi Sudah Jadi)
 
-Dokumen ini mencatat bagaimana aplikasi **seharusnya di-setup** dari awal untuk referensi future setup.
+Dokumen ini mencatat **keputusan teknis** dan **konfigurasi manual** untuk referensi setup ulang atau deploy.
 
-## Setup Project
-1. `composer create-project laravel/laravel .` (Laravel 13)
-2. Konfigurasi `.env` (DB_DATABASE=cash_tracker, DB_USERNAME=root, DB_PASSWORD=)
-3. Hapus auth scaffolding (tidak perlu login/register)
-4. Set `APP_LOCALE=id`, `APP_FALLBACK_LOCALE=id`, `APP_FAKER_LOCALE=id_ID` di `.env`
+## Setup Awal
 
-## Package Tambahan
 ```bash
-composer require maatwebsite/excel
+composer create-project laravel/laravel .
 ```
 
-## Database
-1. Buat migration: accounts, opening_balances, mutations, expenses, incomes, receivables, receivable_payments
-2. Migration alter: `add_category_to_incomes`, `add_fee_to_receivables`
-3. Seeder: `AccountSeeder.php` (10 akun default)
-4. `php artisan migrate --seed`
-5. Buat akun **EDC Pending** (ID 11) manual via `php artisan tinker`
+### .env Config
+```
+APP_NAME="ADI CELL | POS"
+APP_ENV=production       # production → force HTTPS
+APP_DEBUG=false
+APP_URL=https://adicell.example.com
 
-## Backend
-1. **Models** — Eloquent + relationships + casts (`date` → date, `amount` → integer)
-   - Receivable: accessors `remaining`, `principal`, `status_badge`; scopes `unpaid`, `overdue`
-   - Account: scopes `active()`, `byType()`
-2. **Services** — business logic per fitur (DashboardService, IncomeService, ExpenseService, MutationService, ReceivableService)
-3. **Form Requests** — 12 class validasi dengan custom Indonesian messages
-4. **Controllers** — tipis, delegasi ke service
-5. **Routes** — 35 routes (resource + custom: pay, whatsapp, export)
-6. **AppServiceProvider** — view composer untuk badge unpaid count di sidebar
+DB_DATABASE=cash_tracker
+DB_USERNAME=root
+DB_PASSWORD=
 
-## Exports (Maatwebsite/Laravel-Excel)
-4 export classes: IncomesExport, ExpensesExport, MutationsExport, ReceivablesExport
-Semua respect filter yang sama dengan index view.
+APP_LOCALE=id
+APP_FALLBACK_LOCALE=id
+APP_FAKER_LOCALE=id_ID
+```
 
-## Frontend (Bootstrap 5 CDN — No Build Step)
+### Package Tambahan
+```bash
+composer require maatwebsite/excel
+composer require barryvdh/laravel-dompdf
+```
 
-### Layout
-- Sidebar 260px (gradient blue) + topbar sticky — semua inline CSS di `<style>`
-- CSS custom properties (`--bg-body`, `--bg-card`, `--text-primary`, dll) — memudahkan dark mode
+### Auth Setup
+- **Tidak pakai Breeze/Jetstream** — Bootstrap 5 vs Tailwind
+- **Username-based login** — tambah kolom `username` + `permissions` ke tabel users via migration
+- **Session driver**: default (file)
 
-### Dark Mode
-- Toggle dengan button → toggle class `.dark-mode` di `<body>`
-- localStorage persistence
-- Override CSS variables di `.dark-mode` selector
-- Override Bootstrap internal variables (`--bs-body-color`, `--bs-card-color`, `--bs-table-color`)
-- Override inline styles yang hardcode warna via `[style*="..."]`
+### Middleware Registration (`bootstrap/app.php`)
+```php
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->alias([
+        'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        'permission' => \App\Http\Middleware\CheckRole::class,
+    ]);
+    $middleware->redirectUsersTo(fn () => ...);   // guest redirect
+})
+```
 
-### Sidebar Collapse
-- Desktop: collapse ke icon-only (toggle + localStorage)
-- Mobile: hamburger + overlay (transform X)
+### Database Migration
+- `0001_01_01_000000_create_users_table.php` → default Laravel + edit migration untuk username & permissions
+- 30+ migration files untuk semua tabel
+- **PENTING**: `config/database.php` — ganti `Pdo\Mysql` → `PDO::MYSQL_ATTR_SSL_CA` untuk PHP 8.3+
 
-### Halaman
-- Dashboard: 8 stat cards + 3 tabel + 2 quick add modals
-- Setiap halaman CRUD: card + table + modal inline (create/edit) + filter + pagination + export
-- Modal awal: bulk form per periode
-- Ringkasan: tabel bulanan expandable
-- Backup: 3 cards (download, restore, reset)
+### Form Request (14 files)
+Semua dengan `authorize() = true`, custom attribute names (Indonesian), dan custom validation messages (Indonesian).
 
-### Komponen CSS (inline)
-- `stat-card` — colored left border + hover lift
-- `card-modern` — rounded 12px + shadow + hover shadow
-- `table-modern` — uppercase header + hover row
-- `btn-modern` — rounded 10px + hover effect
-- `modal-modern` — rounded 16px
-- `badge-status` — rounded pill
-- `pagination-modern` — styled pagination
+### Composer autoload
+```json
+"autoload": {
+    "files": [
+        "app/helpers.php"
+    ]
+}
+```
+Jangan lupa `composer dump-autoload` setelah helper ditambah/diubah.
 
-### Custom Setup
-1. `composer.json` — tambah `"files": ["app/helpers.php"]` di autoload
-2. `composer dump-autoload` setelah helper baru
-3. Ubah kolom date menjadi `date` di beberapa migration awal (ALTER)
-4. Buat `helpers.php` — fungsi `rp()` (format Rp) + `tgl()` (format tanggal Indonesia)
+## Model Configuration
+### User
+```php
+protected function permissions(): Attribute
+{
+    return Attribute::make(
+        get: fn($value) => json_decode($value, true) ?? [],
+    );
+}
+// isAdmin(): return empty($this->permissions)
+```
+### Money / Amount
+Semua kolom amount = **integer** (dalam rupiah, full number), kecuali:
+- `recurring_bills.amount` dan `bill_payments.amount` → `decimal(15,2)` — kemungkinan nilai pecahan
 
-## Catatan
-- `public/template/` ada Ninja Admin sisa (tidak dipakai, bisa dihapus)
-- `npm run dev` / Vite tidak diperlukan (asset CDN)
-- `php artisan storage:link` tidak diperlukan
-- Semua JS inline di layout & view (jQuery CDN)
+### Date
+Semua kolom date → `datetime` (diubah dari `date` via migration)
+Cast: `'date' => 'datetime'`, `'due_date' => 'datetime'`
+
+### Cascade → nullOnDelete
+Migration `2026_06_14_121526`: mengubah SEMUA FK dari `cascadeOnDelete` ke `nullOnDelete` (9 FK).
+Database financial tidak hilang saat parent (account/product/category) dihapus.
+
+## Service Layer Pattern
+- Controller hanya validasi + delegasi
+- Service handle business logic + DB transaction
+- Service tidak throw HTTP exception (kecuali `ReceivableService::update()` — TODO refactor)
+
+## View Notes
+### Layout (`layouts/app.blade.php`)
+- ~650 baris inline CSS + HTML
+- Sidebar: gradient blue `linear-gradient(180deg, #1e3a5f, #0a1628)`
+- Dark mode via CSS custom properties + `.dark-mode` class
+- View composer: hitung unpaid piutang count untuk badge sidebar
+- CSRF logout via form (bukan link)
+
+### Error Pages
+- **403**: permission denied, tombol "Kembali ke Dashboard" (atau POS untuk kasir)
+- **404**, **419**, **500**, **503**: light mode, info message + tombol kembali
+- **419** khusus: "Sesi berakhir. Silakan login ulang."
+
+### Receipt PDF
+- DomPDF dengan kertas custom `[0, 0, 226, 500]` (thermal printer size)
+- View: `stock/receipt-pdf.blade.php`
+
+## RBAC Flow
+1. User login → cek `isAdmin()` → redirect admin ke `/`, kasir ke `/stock/sales`
+2. Route middleware: `permission:dashboard` dll
+3. `CheckRole`: jika user admin → pass; jika tidak → cek in_array permission
+4. `AdminMiddleware`: strict admin-only (users, backups, delete stock routes)
+
+### 14 Permission Keys
+```
+dashboard, pos, stock_in, stock_opname, products, categories,
+stock_report, accounts, mutations, incomes, expenses,
+receivables, bills, summary
+```
+
+## Deployment Checklist
+- [ ] `.env`: `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://...`
+- [ ] `DB_MYSQL_DIR` — set path ke direktori bin MySQL server (untuk backup)
+- [ ] Force HTTPS auto via `AppServiceProvider@boot` (cek `APP_ENV`)
+- [ ] Login throttle: 5 attempt/menit via route middleware
+- [ ] Login throttle is GLOBAL untuk route login (bisa diakses tanpa login)
+- [ ] Semua form `autocomplete="off"`
+- [ ] Hapus direktori `public/template/` jika tidak diperlukan (sisa template Ninja Admin)
+- [ ] Hapus routes `auth.php` yang tidak dipakai
+- [ ] Test backup/restore di environment production
+
+## Manual Steps (seed)
+Tidak ada seeder otomatis. Setelah migration:
+1. Buat user admin via tinker atau UI:
+   ```php
+   User::create([
+       'name' => 'Admin',
+       'username' => 'admin',
+       'password' => Hash::make('admin123'),
+       'permissions' => null, // null = admin
+   ]);
+   ```
+2. Buat akun keuangan via UI (`/accounts`): SHOPEEPAY, DANA, GOPAY, BCA, CASH, dll
+3. Input saldo awal via `/opening-balances`
+
+## Catatan Penting
+- **Backup** via `exec('mysqldump ...')` — membutuhkan path MySQL binary di env `DB_MYSQL_DIR`
+- **Reset data** — truncate 7 tabel, akun tetap aman
+- **Produk soft-delete** via `is_active = false` (bukan hard delete)
+- **Akun soft-delete** via `is_active = false`
+- **User soft-delete** via model `delete()` (Eloquent soft delete tidak dipakai, hard delete saja)
+- **Receipt ID** format: `INV-YYYYMMDD-xxxxx` (uniqid 5 char)
+- Semua nilai uang dalam **integer Rupiah** (kecuali recurring bills)

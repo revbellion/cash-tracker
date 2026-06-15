@@ -1,40 +1,61 @@
-# ADI CELL | Cash Tracker
+# ADI CELL | POS
 
-Aplikasi pencatatan keuangan konter HP (ADI CELL) berbasis **Laravel 13** + **MySQL 8** + **Bootstrap 5.3 CDN**.
-
-Multi-akun (bank, ewallet, cash, ppob), mutasi antar akun, pengeluaran, pendapatan, piutang dengan perhitungan profit otomatis.
+Aplikasi POS dan pencatatan keuangan untuk konter HP **ADI CELL**.  
+Built with **Laravel 13**, **MySQL 8**, **Bootstrap 5.3 CDN** (no build step).
 
 ## Fitur Utama
 
-- **Dashboard** — 8 stat card (equity, piutang, expense, profit, BCA, avg harian, omset, cash) + tabel saldo akun + mutasi terakhir + profit 7 hari
-- **Multi-Account** — Kelola akun (CRUD) dengan tipe ewallet/bank/cash/ppob/other
-- **Modal Awal** — Input opening balance per akun per periode
-- **Pendapatan** — Catat pendapatan dengan kategori & deskripsi
-- **Pengeluaran** — Catat pengeluaran per akun dengan kategori & deskripsi
+- **POS** — Penjualan multi-item, cetak receipt (HTML/PDF), stok otomatis berkurang
+- **Stok Masuk** — Catat pembelian stok, otomatis catat pengeluaran
+- **Stok Opname** — Sesuaikan stok fisik + harga beli
+- **Dashboard** — Admin (keuangan lengkap) + Kasir (penjualan hari ini, stok, barang hampir habis)
+- **Manajemen Akun** — Multi-akun (cash, bank, ewallet, ppob, other)
+- **Modal Awal** — Input saldo awal per akun per periode
+- **Pendapatan & Pengeluaran** — Catat transaksi keuangan harian
 - **Mutasi** — Transfer antar akun
-- **Piutang** — Kelola piutang pelanggan + fee otomatis + pembayaran + status + link WA reminder
-- **Ringkasan Bulanan** — View 3/6/12 bulan dengan detail per kategori (expandable)
-- **Export Excel** — Semua data (pendapatan, pengeluaran, mutasi, piutang) bisa di-export ke Excel
-- **Backup & Restore** — Download SQL, restore dari file, reset semua data (accounts tetap aman)
-- **Dark Mode** — Toggle dengan localStorage persistence
-- **Sidebar Collapse** — Desktop collapse ke icon & mobile responsive hamburger
+- **Piutang** — Catat piutang pelanggan + bayar + link WA reminder
+- **Tagihan Rutin** — Recurring bills per bulan
+- **Ringkasan** — Laporan bulanan (3/6/12 bulan)
+- **Export Excel** — Semua modul bisa export XLSX
+- **Role-Based Access** — Admin (full) + permission-based kasir (14 permission keys)
+- **Backup & Restore** — Download SQL, restore, reset data transaksi
+- **Dark Mode** — Toggle, persist ke localStorage
+- **Error Pages** — 403, 404, 419, 500, 503 (light mode)
 
 ## Tech Stack
 
-- **Backend:** Laravel 13 (PHP 8.3+), Service Layer Pattern
-- **Database:** MySQL 8
-- **Frontend:** Bootstrap 5.3 CDN, Font Awesome 6 CDN, jQuery 3.7 CDN, Inter Font
-- **Export:** Maatwebsite/Laravel-Excel
-- **CSS:** Semua inline (no build step)
+| Layer | Tech |
+|-------|------|
+| Backend | Laravel 13 (PHP 8.3+), Service Layer Pattern |
+| Database | MySQL 8 |
+| Frontend | Bootstrap 5.3 CDN, Font Awesome 6 CDN, jQuery 3.7 CDN, Inter Font |
+| Export | Maatwebsite/Laravel-Excel |
+| CSS | Inline (CSS custom properties, no build step) |
+| Auth | Username-based, throttle 5/menit |
 
 ## Setup
 
 ```bash
 composer install
-cp .env.example .env   # config DB_DATABASE=cash_tracker
+cp .env.example .env
+# Setup: DB_DATABASE=cash_tracker, APP_NAME="ADI CELL | POS"
 php artisan key:generate
-php artisan migrate --seed
+php artisan migrate
 php artisan serve
 ```
 
-Dokumentasi lengkap: [`docs/`](./docs)
+### Admin Default
+- Username: `admin` / Password: `admin123` (seed manually via tinker or register)
+
+## Struktur Route
+
+~60 routes grouped:
+- **Guest**: login, logout
+- **Stock**: POS, stok masuk, opname, receipt, report, hapus (admin only)
+- **Master**: products, categories, accounts
+- **Keuangan**: mutations, incomes, expenses, receivables, bills, summary
+- **Pengaturan**: backups, users (admin only)
+
+## Dokumentasi
+
+Lihat folder [`docs/`](./docs) untuk detail spesifikasi, struktur DB, fitur, dan struktur proyek.

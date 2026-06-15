@@ -1,6 +1,8 @@
 @php
     $title = isset($user) ? 'Edit User' : 'Tambah User';
     $isEditing = isset($user);
+    $defaultPermissions = ['pos', 'stock_in', 'stock_opname'];
+    $checkedPerms = old('permissions', $user->permissions ?? ($isEditing ? [] : $defaultPermissions));
 @endphp
 @extends('layouts.app')
 
@@ -35,13 +37,13 @@
             @else
                 <div class="mt-3">
                     <label class="form-label d-block">Akses Modul</label>
-                    <div class="text-muted mb-2" style="font-size:0.8rem;">Kosongkan semua jika user ini adalah admin (full akses). Centang modul yang boleh diakses user.</div>
+                    <div class="text-muted mb-2" style="font-size:0.8rem;">Kosongkan semua untuk admin (full akses). Default karyawan: POS + Stok Masuk + Opname.</div>
                     <div class="row g-2">
                         @foreach($permissionKeys as $perm)
                             <div class="col-md-4">
                                 <label class="d-flex align-items-center gap-2" style="cursor:pointer;font-size:0.85rem;color:var(--text-primary);">
                                     <input type="checkbox" name="permissions[]" value="{{ $perm['key'] }}"
-                                        {{ in_array($perm['key'], old('permissions', $user->permissions ?? [])) ? 'checked' : '' }}>
+                                        {{ in_array($perm['key'], $checkedPerms) ? 'checked' : '' }}>
                                     {{ $perm['label'] }}
                                 </label>
                             </div>

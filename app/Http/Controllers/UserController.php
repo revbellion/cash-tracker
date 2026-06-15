@@ -22,8 +22,17 @@ class UserController extends Controller
             ['key' => 'products', 'label' => 'Data Barang'],
             ['key' => 'categories', 'label' => 'Kategori Barang'],
             ['key' => 'stock_report', 'label' => 'Laporan Stok'],
+            ['key' => 'accounts', 'label' => 'Akun & Modal Awal'],
+            ['key' => 'mutations', 'label' => 'Mutasi'],
+            ['key' => 'incomes', 'label' => 'Pendapatan'],
+            ['key' => 'expenses', 'label' => 'Pengeluaran'],
+            ['key' => 'receivables', 'label' => 'Piutang'],
+            ['key' => 'bills', 'label' => 'Tagihan'],
+            ['key' => 'summary', 'label' => 'Ringkasan'],
+            ['key' => 'cash_counter', 'label' => 'Cash Counter'],
         ];
-        return view('users.index', compact('users', 'permissionKeys'));
+        $totalUsers = $users->count();
+        return view('users.index', compact('users', 'permissionKeys', 'totalUsers'));
     }
 
     public function create(): View
@@ -36,6 +45,14 @@ class UserController extends Controller
             ['key' => 'products', 'label' => 'Data Barang'],
             ['key' => 'categories', 'label' => 'Kategori Barang'],
             ['key' => 'stock_report', 'label' => 'Laporan Stok'],
+            ['key' => 'accounts', 'label' => 'Akun & Modal Awal'],
+            ['key' => 'mutations', 'label' => 'Mutasi'],
+            ['key' => 'incomes', 'label' => 'Pendapatan'],
+            ['key' => 'expenses', 'label' => 'Pengeluaran'],
+            ['key' => 'receivables', 'label' => 'Piutang'],
+            ['key' => 'bills', 'label' => 'Tagihan'],
+            ['key' => 'summary', 'label' => 'Ringkasan'],
+            ['key' => 'cash_counter', 'label' => 'Cash Counter'],
         ];
         return view('users.form', compact('permissionKeys'));
     }
@@ -47,7 +64,7 @@ class UserController extends Controller
             'username' => 'required|string|max:50|unique:users,username',
             'password' => 'required|string|min:6',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:dashboard,pos,stock_in,stock_opname,products,categories,stock_report',
+            'permissions.*' => 'string|in:dashboard,pos,stock_in,stock_opname,products,categories,stock_report,accounts,mutations,incomes,expenses,receivables,bills,summary,cash_counter',
         ]);
 
         User::create([
@@ -70,6 +87,14 @@ class UserController extends Controller
             ['key' => 'products', 'label' => 'Data Barang'],
             ['key' => 'categories', 'label' => 'Kategori Barang'],
             ['key' => 'stock_report', 'label' => 'Laporan Stok'],
+            ['key' => 'accounts', 'label' => 'Akun & Modal Awal'],
+            ['key' => 'mutations', 'label' => 'Mutasi'],
+            ['key' => 'incomes', 'label' => 'Pendapatan'],
+            ['key' => 'expenses', 'label' => 'Pengeluaran'],
+            ['key' => 'receivables', 'label' => 'Piutang'],
+            ['key' => 'bills', 'label' => 'Tagihan'],
+            ['key' => 'summary', 'label' => 'Ringkasan'],
+            ['key' => 'cash_counter', 'label' => 'Cash Counter'],
         ];
         return view('users.form', compact('user', 'permissionKeys'));
     }
@@ -81,7 +106,7 @@ class UserController extends Controller
             'username' => 'required|string|max:50|unique:users,username,' . $user->id,
             'password' => 'nullable|string|min:6',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|in:dashboard,pos,stock_in,stock_opname,products,categories,stock_report',
+            'permissions.*' => 'string|in:dashboard,pos,stock_in,stock_opname,products,categories,stock_report,accounts,mutations,incomes,expenses,receivables,bills,summary,cash_counter',
         ]);
 
         $data = [

@@ -24,7 +24,13 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('dashboard'));
+
+            $user = Auth::user();
+            if ($user->isAdmin() || $user->hasPermission('dashboard')) {
+                return redirect()->intended(route('dashboard'));
+            }
+
+            return redirect()->intended(route('stock.sales'));
         }
 
         return back()->withErrors(['Username atau password salah.']);

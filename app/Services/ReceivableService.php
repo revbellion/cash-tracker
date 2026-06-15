@@ -12,8 +12,9 @@ class ReceivableService
     public function create(array $data): Receivable
     {
         $now = Carbon::now();
-        $data['date'] = Carbon::parse($data['date'])->format('Y-m-d') . ' ' . $now->format('H:i:s');
-        $data['due_date'] = Carbon::parse($data['date'])->addDays(3);
+        $parsedDate = Carbon::parse($data['date']);
+        $data['date'] = $parsedDate->format('Y-m-d') . ' ' . $now->format('H:i:s');
+        $data['due_date'] = $parsedDate->addDays(3);
         $data['status'] = 'unpaid';
 
         return DB::transaction(function () use ($data) {
@@ -31,8 +32,9 @@ class ReceivableService
             }
 
             $now = Carbon::now();
-            $data['date'] = Carbon::parse($data['date'])->format('Y-m-d') . ' ' . $now->format('H:i:s');
-            $data['due_date'] = Carbon::parse($data['date'])->addDays(3);
+            $parsedDate = Carbon::parse($data['date']);
+            $data['date'] = $parsedDate->format('Y-m-d') . ' ' . $now->format('H:i:s');
+            $data['due_date'] = $parsedDate->addDays(3);
 
             $receivable->update($data);
             return $receivable;
@@ -75,9 +77,9 @@ class ReceivableService
         });
     }
 
-    public function getAll(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getAll(array $filters = []): array
     {
-        $query = Receivable::with('receivablePayments');
+        $query = Receivable::query();
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -99,7 +101,14 @@ class ReceivableService
             });
         }
 
-        return $query->latest()->paginate(20);
+        $totalAmount = (clone $query)->sum('amount');
+        $allIds = (clone $query)->pluck('id');
+        $totalPaid = ReceivablePayment::whereIn('receivable_id', $allIds)->sum('amount');
+        $totalRemaining = $totalAmount - $totalPaid;
+
+        $receivables = $query->with('receivablePayments')->latest()->paginate(20);
+
+        return compact('receivables', 'totalAmount', 'totalRemaining');
     }
 
     public function generateWhatsAppLink(Receivable $receivable): string
@@ -124,7 +133,7 @@ class ReceivableService
             );
         }
 
-        $phone = preg_replace('/[^0-9]/', '', ltrim($receivable->phone, '+'));
+        $phone = preg_replace('/[^0-9]/', '', ltrim((string) $receivable->phone, '+'));
 
         return 'https://wa.me/' . $phone . '?text=' . urlencode($text);
     }

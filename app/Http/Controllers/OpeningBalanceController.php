@@ -17,7 +17,8 @@ class OpeningBalanceController extends Controller
             ->get()
             ->keyBy('account_id');
 
-        return view('opening-balances.index', compact('accounts', 'openingBalances', 'period'));
+        $totalAmount = $openingBalances->sum('amount');
+        return view('opening-balances.index', compact('accounts', 'openingBalances', 'period', 'totalAmount'));
     }
 
     public function store(Request $request)

@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateIncomeRequest;
 use App\Models\Account;
 use App\Services\IncomeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
 
 class IncomeController extends Controller
@@ -18,12 +19,14 @@ class IncomeController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['date_from', 'date_to', 'category', 'search']);
+        $filters = $this->parseFilters($request);
+        $result = $this->incomeService->getAll($filters);
 
         return view('incomes.index', [
-            'incomes' => $this->incomeService->getAll($filters),
+            'incomes' => $result['incomes'],
             'categories' => $this->incomeService->getCategories(),
             'accounts' => Account::active()->get(),
+            'totalAmount' => $result['totalAmount'],
         ]);
     }
 
@@ -50,8 +53,24 @@ class IncomeController extends Controller
 
     public function export(Request $request)
     {
-        $filters = $request->only(['date_from', 'date_to', 'category', 'search']);
+        $filters = $this->parseFilters($request);
 
         return Excel::download(new IncomesExport($filters), 'pendapatan.xlsx');
+    }
+
+    private function parseFilters(Request $request): array
+    {
+        $raw = $request->only(['date_from', 'date_to', 'category', 'search']);
+        $raw = array_map(fn($v) => $v === '' ? null : $v, $raw);
+
+        return array_filter(
+            Validator::make($raw, [
+                'date_from' => 'nullable|date',
+                'date_to' => 'nullable|date',
+                'category' => 'nullable|string|max:100',
+                'search' => 'nullable|string|max:100',
+            ])->valid(),
+            fn($v) => $v !== null
+        );
     }
 }

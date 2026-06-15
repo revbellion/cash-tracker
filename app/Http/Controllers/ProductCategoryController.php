@@ -10,7 +10,8 @@ class ProductCategoryController extends Controller
     public function index()
     {
         $categories = ProductCategory::withCount('products')->latest()->get();
-        return view('product-categories.index', compact('categories'));
+        $totalCategories = $categories->count();
+        return view('product-categories.index', compact('categories', 'totalCategories'));
     }
 
     public function store(Request $request)

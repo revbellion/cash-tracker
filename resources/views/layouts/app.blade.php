@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Dashboard') | Cash Tracker</title>
+    <title>@yield('title', 'Dashboard') | ADI CELL POS</title>
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -324,6 +324,8 @@
         margin: 0 2px;
         color: var(--theme-primary);
         font-weight: 500;
+        font-size: 0.85rem;
+        padding: 0.25rem 0.6rem;
     }
     .pagination-modern .page-item.active .page-link {
         background: var(--theme-primary);
@@ -485,6 +487,45 @@
     }
     .theme-dot:hover { transform: scale(1.3); }
     .theme-dot.active { border-color: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.3); }
+
+    /* ===== RESPONSIVE OVERRIDES ===== */
+    @media (max-width: 767.98px) {
+        .page-content { padding: 1rem; }
+        .modal-modern .modal-body .row.g-2 .col-4,
+        .modal-modern .modal-body .row.g-2 .col-6 { flex: 0 0 100%; max-width: 100%; }
+    }
+    @media (max-width: 575.98px) {
+        .page-content { padding: 0.75rem; }
+        .topbar .topbar-brand { font-size: 0.85rem; }
+        .filter-form .col-auto { flex: 0 0 100%; max-width: 100%; margin-top: 0.25rem; }
+        .filter-form .col-auto .btn { width: 100%; }
+        .filter-form .col-auto .form-control,
+        .filter-form .col-auto .form-select { width: 100% !important; }
+        .summary-bar { flex-wrap: wrap; gap: 0.5rem !important; }
+        .summary-bar .d-flex.gap-4 { gap: 0.5rem !important; }
+        .pos-cart-card, .pos-grid-card { min-height: 300px !important; }
+        .pos-grid-scroll { max-height: 50vh !important; }
+        .pos-cart-footer-row .col-5,
+        .pos-cart-footer-row .col-3,
+        .pos-cart-footer-row .col-4 { flex: 0 0 100%; max-width: 100%; margin-top: 0.25rem; }
+        .btn-modern { font-size: 0.8rem; padding: 0.35rem 0.65rem; }
+    }
+    @media (max-width: 400px) {
+        .page-content { padding: 0.5rem; }
+        .card-modern .card-header { padding: 0.5rem 0.75rem; }
+        .card-modern .card-body { padding: 0.5rem 0.75rem; }
+        .stat-card .card-body { padding: 0.75rem; }
+        .stat-card h4 { font-size: 1.1rem; }
+        .dashboard-actions { gap: 0.35rem; }
+        .dashboard-actions .btn { font-size: 0.72rem; padding: 0.25rem 0.5rem; }
+        .modal-modern .modal-header,
+        .modal-modern .modal-footer { padding: 0.5rem 0.75rem; }
+        .modal-modern .modal-body { padding: 0.75rem; }
+        .denom-grid-item { flex: 0 0 100%; max-width: 100%; }
+    }
+    .denom-grid-item { flex: 0 0 50%; max-width: 50%; }
+    @media (min-width: 768px) { .denom-grid-item { flex: 0 0 33.333%; max-width: 33.333%; } }
+    @media (min-width: 1200px) { .denom-grid-item { flex: 0 0 25%; max-width: 25%; } }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     @stack('styles')
@@ -494,7 +535,7 @@
 <div class="sidebar" id="sidebar">
     <div class="sidebar-brand">
         <img src="{{ asset('logo.png') }}" alt="Logo" style="width:45px;height:45px;object-fit:contain;flex-shrink:0;">
-        <span>ADI CELL | Cash Tracker</span>
+        <span>ADI CELL | POS</span>
     </div>
     <div class="sidebar-nav">
         @if(Auth::user()->hasPermission('dashboard'))
@@ -559,6 +600,15 @@
         </div>
         @endif
 
+        @if(Auth::user()->hasPermission('cash_counter'))
+        <div class="nav-item">
+            <a class="nav-link {{ request()->routeIs('cash-counter.*') ? 'active' : '' }}" href="{{ route('cash-counter.index') }}">
+                <i class="fas fa-calculator"></i>
+                <span class="nav-label">Cash Counter</span>
+            </a>
+        </div>
+        @endif
+
         @if(Auth::user()->hasPermission('bills'))
         <div class="nav-item">
             <a class="nav-link {{ request()->routeIs('bills.*') ? 'active' : '' }}" href="{{ route('bills.index') }}">
@@ -619,9 +669,30 @@
             </div>
         </div>
 
+        @if(Auth::user()->hasPermission('accounts'))
+        <div class="nav-item">
+            <a class="nav-link group-header {{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') ? 'active' : '' }}"
+               data-bs-toggle="collapse" data-bs-target="#collapseAkun"
+               onclick="return false;" role="button" aria-expanded="{{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') ? 'true' : 'false' }}">
+                <i class="fas fa-wallet"></i>
+                <span class="nav-label">Akun</span>
+                <i class="fas fa-chevron-down caret {{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') ? 'open' : '' }}"></i>
+            </a>
+            <div class="collapse submenu {{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') ? 'show' : '' }}" id="collapseAkun">
+                <a class="nav-link sub-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}" href="{{ route('accounts.index') }}">
+                    <i class="fas fa-wallet"></i>
+                    <span class="nav-label">Akun</span>
+                </a>
+                <a class="nav-link sub-link {{ request()->routeIs('opening-balances.*') ? 'active' : '' }}" href="{{ route('opening-balances.index') }}">
+                    <i class="fas fa-coins"></i>
+                    <span class="nav-label">Modal Awal</span>
+                </a>
+            </div>
+        </div>
+        @endif
         @if(Auth::user()->isAdmin())
         @php
-            $pengaturanActive = request()->routeIs('opening-balances.*') || request()->routeIs('accounts.*') || request()->routeIs('backups.*') || request()->routeIs('users.*');
+            $pengaturanActive = request()->routeIs('backups.*') || request()->routeIs('users.*');
         @endphp
         <div class="nav-item">
             <a class="nav-link group-header {{ $pengaturanActive ? 'active' : '' }}"
@@ -636,17 +707,9 @@
                     <i class="fas fa-users"></i>
                     <span class="nav-label">Kelola User</span>
                 </a>
-                <a class="nav-link sub-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}" href="{{ route('accounts.index') }}">
-                    <i class="fas fa-wallet"></i>
-                    <span class="nav-label">Akun</span>
-                </a>
                 <a class="nav-link sub-link {{ request()->routeIs('backups.*') ? 'active' : '' }}" href="{{ route('backups.index') }}">
                     <i class="fas fa-database"></i>
                     <span class="nav-label">Backup DB</span>
-                </a>
-                <a class="nav-link sub-link {{ request()->routeIs('opening-balances.*') ? 'active' : '' }}" href="{{ route('opening-balances.index') }}">
-                    <i class="fas fa-coins"></i>
-                    <span class="nav-label">Modal Awal</span>
                 </a>
             </div>
         </div>

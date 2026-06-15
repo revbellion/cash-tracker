@@ -19,8 +19,8 @@ class StockController extends Controller
     {
         $products = Product::with('category')->active()->orderBy('name')->get();
         $accounts = Account::active()->get();
-        $history = $this->stockService->getStockInHistory();
-        return view('stock.in', compact('products', 'accounts', 'history'));
+        $result = $this->stockService->getStockInHistory();
+        return view('stock.in', array_merge(compact('products', 'accounts'), $result));
     }
 
     public function storeIn(Request $request)
@@ -42,9 +42,12 @@ class StockController extends Controller
     public function sales()
     {
         $products = Product::with('category')->active()->orderBy('name')->get();
-        $accounts = Account::active()->get();
-        $history = $this->stockService->getSalesHistory();
-        return view('stock.sales', compact('products', 'accounts', 'history'));
+        $accounts = Account::active()->where('type', '!=', 'ppob')->get();
+        $result = $this->stockService->getSalesHistory();
+        return view('stock.sales', array_merge(compact('products', 'accounts'), [
+            'history' => $result['receipts'],
+            'totalSales' => $result['totalSales'],
+        ]));
     }
 
     public function storeSale(Request $request)
@@ -73,13 +76,21 @@ class StockController extends Controller
 
     public function destroy(string $receiptId)
     {
-        $this->stockService->deleteSale($receiptId);
+        try {
+            $this->stockService->deleteSale($receiptId);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus penjualan: ' . $e->getMessage());
+        }
         return redirect()->back()->with('success', 'Penjualan berhasil dihapus.');
     }
 
     public function destroyStockIn(StockTransaction $stockTransaction)
     {
-        $this->stockService->deleteStockIn($stockTransaction);
+        try {
+            $this->stockService->deleteStockIn($stockTransaction);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus stok masuk: ' . $e->getMessage());
+        }
         return redirect()->back()->with('success', 'Transaksi stok masuk berhasil dihapus.');
     }
 

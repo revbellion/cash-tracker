@@ -14,7 +14,7 @@
     <div class="row g-3">
         {{-- LEFT: Cart --}}
         <div class="col-lg-7">
-            <div class="card card-modern shadow-sm" style="min-height:500px;">
+            <div class="card card-modern shadow-sm pos-cart-card" style="min-height:500px;">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <span class="fw-semibold"><i class="fas fa-shopping-cart me-2 text-warning"></i>Keranjang</span>
                     <div>
@@ -47,7 +47,7 @@
                             <h4 class="fw-bold mb-0" id="pos-grand-total">Rp 0</h4>
                         </div>
                     </div>
-                    <div class="row g-2 mt-2">
+                    <div class="row g-2 mt-2 pos-cart-footer-row">
                         <div class="col-5">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text" style="border-radius:8px 0 0 8px;">Bayar</span>
@@ -72,7 +72,7 @@
 
         {{-- RIGHT: Product Grid --}}
         <div class="col-lg-5">
-            <div class="card card-modern shadow-sm" style="min-height:500px;">
+            <div class="card card-modern shadow-sm pos-grid-card" style="min-height:500px;">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <span class="fw-semibold"><i class="fas fa-box me-2" style="color:var(--theme-primary);"></i>Pilih Barang</span>
                     <select id="pos-category-filter" class="form-select form-select-sm" style="width:auto;border-radius:8px;">
@@ -82,7 +82,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="card-body p-3" id="pos-product-grid" style="max-height:450px;overflow-y:auto;">
+                <div class="card-body p-3 pos-grid-scroll" id="pos-product-grid" style="max-height:450px;overflow-y:auto;">
                     <div class="row g-2">
                         @foreach($products as $product)
                         <div class="col-6 pos-product-item" data-category="{{ $product->category_id }}" data-id="{{ $product->id }}">
@@ -149,6 +149,7 @@
                                     <a href="{{ route('stock.receipt', $receipt->receipt_id) }}" target="_blank" class="btn btn-modern btn-success btn-sm py-0 px-2" style="font-size:0.7rem;">
                                         <i class="fas fa-print"></i>
                                     </a>
+                                    @if(Auth::user()->isAdmin())
                                     <form autocomplete="off" action="{{ route('stock.sales.destroy', $receipt->receipt_id) }}" method="POST" class="d-inline"
                                         onsubmit="return confirm('Yakin hapus penjualan {{ $receipt->receipt_id }}?')">
                                         @csrf
@@ -157,6 +158,7 @@
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </td>
                             </tr>
                             @empty
@@ -166,6 +168,15 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 summary-bar" style="border-top:2px solid var(--border-subtle);">
+                <div>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">{{ $history->count() }} dari {{ $history->total() }} data</span>
+                </div>
+                <div>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">Total Penjualan</span>
+                    <span class="fw-bold ms-2" style="font-size:0.95rem;color:var(--text-primary);">{{ rp($totalSales) }}</span>
                 </div>
             </div>
             @if($history->hasPages())
@@ -327,9 +338,9 @@ document.getElementById('formPenjualan').addEventListener('submit', function (e)
 // Auto-print PDF after successful submit
 @if(session('receipt_id'))
 document.addEventListener('DOMContentLoaded', function () {
-    var r = '{{ session('receipt_id') }}';
+    var r = @json(session('receipt_id'));
     if (confirm('Cetak resi untuk ' + r + '?')) {
-        window.open('{{ route('stock.receipt.pdf', session('receipt_id')) }}', '_blank');
+        window.open(@json(route('stock.receipt.pdf', session('receipt_id'))), '_blank');
     }
 });
 @endif

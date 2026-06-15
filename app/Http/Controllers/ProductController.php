@@ -17,7 +17,9 @@ class ProductController extends Controller
     {
         $products = Product::with('category')->latest()->get();
         $categories = ProductCategory::orderBy('name')->get();
-        return view('products.index', compact('products', 'categories'));
+        $totalProducts = $products->count();
+        $totalStockValue = $products->sum(fn($p) => $p->stock * $p->purchase_price);
+        return view('products.index', compact('products', 'categories', 'totalProducts', 'totalStockValue'));
     }
 
     public function store(Request $request)
@@ -66,7 +68,7 @@ class ProductController extends Controller
 
     public function history(Product $product)
     {
-        $transactions = $this->stockService->getProductHistory($product->id);
-        return view('products.history', compact('product', 'transactions'));
+        $result = $this->stockService->getProductHistory($product->id);
+        return view('products.history', array_merge(compact('product'), $result));
     }
 }

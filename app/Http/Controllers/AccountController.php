@@ -10,9 +10,10 @@ class AccountController extends Controller
 {
     public function index()
     {
-        return view('accounts.index', [
-            'accounts' => Account::orderBy('is_active', 'desc')->orderBy('name')->get(),
-        ]);
+        $accounts = Account::orderBy('is_active', 'desc')->orderBy('name')->get();
+        $totalAccounts = $accounts->count();
+        $totalActive = $accounts->where('is_active', true)->count();
+        return view('accounts.index', compact('accounts', 'totalAccounts', 'totalActive'));
     }
 
     public function store(StoreAccountRequest $request)

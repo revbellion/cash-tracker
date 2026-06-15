@@ -35,7 +35,7 @@ class ExpenseService
         });
     }
 
-    public function getAll(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getAll(array $filters = []): array
     {
         $query = Expense::with('account');
 
@@ -59,7 +59,10 @@ class ExpenseService
             });
         }
 
-        return $query->latest()->paginate(20);
+        $totalAmount = (clone $query)->sum('amount');
+        $expenses = $query->latest()->paginate(20);
+
+        return compact('expenses', 'totalAmount');
     }
 
     public function getCategories(): \Illuminate\Support\Collection

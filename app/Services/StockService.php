@@ -67,9 +67,12 @@ class StockService
                 'date'        => $saleInfo['date'] . ' ' . now()->format('H:i:s'),
             ]);
 
+            $itemNames = [];
+
             foreach ($items as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 $subtotal = $item['qty'] * $item['price'];
+                $itemNames[] = $product->name . ' (' . $item['qty'] . ' ' . $product->unit . ')';
 
                 StockTransaction::create([
                     'product_id'  => $product->id,
@@ -84,16 +87,9 @@ class StockService
                 ]);
 
                 $product->decrement('stock', $item['qty']);
-
-                $income->description = str_replace(
-                    ')', ', ' . $product->name . ' (' . $item['qty'] . ' ' . $product->unit . ')',
-                    $income->description
-                );
             }
 
-            if (count($items) > 1) {
-                $income->description .= ')';
-            }
+            $income->description = 'Penjualan ' . now()->format('d/m/Y H:i') . ' - ' . implode(', ', $itemNames);
             $income->save();
 
             return $receiptId;
@@ -155,16 +151,22 @@ class StockService
         });
     }
 
-    public function getStockInHistory()
+    public function getStockInHistory(): array
     {
-        return StockTransaction::with('product', 'account')
-            ->where('type', 'in')
-            ->latest()
-            ->paginate(20);
+        $query = StockTransaction::with('product', 'account')->where('type', 'in');
+        $totalQty = (clone $query)->sum('qty');
+        $totalValue = (clone $query)->sum(DB::raw('qty * price'));
+        $history = $query->latest()->paginate(20);
+
+        return compact('history', 'totalQty', 'totalValue');
     }
 
-    public function getSalesHistory()
+    public function getSalesHistory(): array
     {
+        $totalSales = StockTransaction::where('type', 'out')
+            ->whereNotNull('receipt_id')
+            ->sum(DB::raw('qty * price'));
+
         $receipts = StockTransaction::where('type', 'out')
             ->select('receipt_id', DB::raw('COUNT(*) as item_count'), DB::raw('SUM(qty * price) as total'))
             ->whereNotNull('receipt_id')
@@ -181,16 +183,21 @@ class StockService
             return $r;
         });
 
-        return $receipts;
+        return compact('receipts', 'totalSales');
     }
 
-    public function getProductHistory(int $productId)
+    public function getProductHistory(int $productId): array
     {
-        return StockTransaction::with('product', 'account')
-            ->where('product_id', $productId)
-            ->orderByDesc('date')
-            ->orderByDesc('id')
-            ->paginate(30);
+        $query = StockTransaction::with('product', 'account')
+            ->where('product_id', $productId);
+
+        $totalQtyIn = (clone $query)->where('type', 'in')->sum('qty');
+        $totalQtyOut = (clone $query)->where('type', 'out')->sum('qty');
+        $totalValue = (clone $query)->sum(DB::raw('qty * price'));
+
+        $transactions = $query->orderByDesc('date')->orderByDesc('id')->paginate(30);
+
+        return compact('transactions', 'totalQtyIn', 'totalQtyOut', 'totalValue');
     }
 
     public function getReceipt(string $receiptId): ?object

@@ -59,13 +59,14 @@
                     <i class="fas fa-exclamation-triangle me-1"></i>
                     <strong>Bahaya!</strong> Aksi ini akan menghapus SELURUH data transaksi (pendapatan, pengeluaran, mutasi, piutang, modal awal). Struktur akun tetap aman.
                 </div>
-                <form autocomplete="off" method="POST" action="{{ route('backups.reset') }}" onsubmit="return confirmReset()">
+                <form autocomplete="off" method="POST" action="{{ route('backups.reset') }}">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label">Ketik <strong>RESET</strong> untuk konfirmasi:</label>
                         <input type="text" name="confirm" class="form-control" style="max-width:200px;" required>
                     </div>
-                    <button type="submit" class="btn btn-modern btn-danger">
+                    <button type="submit" class="btn btn-modern btn-danger"
+                            onclick="return confirm('YAKIN ingin reset SEMUA data transaksi? Aksi ini tidak bisa dibatalkan!')">
                         <i class="fas fa-trash-alt me-1"></i>Reset Semua Data
                     </button>
                 </form>
@@ -73,14 +74,4 @@
         </div>
     </div>
 </div>
-@push('scripts')
-<script>
-function confirmReset() {
-    var val = prompt('Ketik RESET untuk konfirmasi penghapusan semua data:');
-    if (val === 'RESET') return true;
-    alert('Konfirmasi gagal. Harap ketik "RESET" dengan benar.');
-    return false;
-}
-</script>
-@endpush
 @endsection

@@ -84,11 +84,11 @@ class DashboardService
 
         $profitBersih = $totalEquity - $totalOpeningBalance;
 
-        $dayOfMonth = Carbon::now()->day;
-        $daysInMonth = Carbon::now()->daysInMonth;
+        $now = Carbon::now();
+        $isCurrentPeriod = ($year == $now->year && $month == $now->month);
+        $dayOfMonth = $isCurrentPeriod ? $now->day : $dateEnd->day;
+        $daysInMonth = $dateEnd->daysInMonth;
         $avgDaily = $dayOfMonth > 0 ? $totalExpense / $dayOfMonth : 0;
-        $estIncome = $daysInMonth * $avgDaily;
-
         $recentMutasi = Mutation::with('fromAccount', 'toAccount')
             ->latest()
             ->take(10)

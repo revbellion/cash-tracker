@@ -42,6 +42,15 @@
                     </tbody>
                 </table>
             </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">Total {{ $accounts->count() }} akun</span>
+                </div>
+                <div>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">Total Modal</span>
+                    <span class="fw-bold ms-2" style="font-size:0.95rem;color:var(--text-primary);">{{ rp($totalAmount) }}</span>
+                </div>
+            </div>
             <button type="submit" class="btn btn-modern btn-primary">
                 <i class="fas fa-save me-1"></i>Simpan
             </button>

@@ -21,20 +21,22 @@ class BackupController extends Controller
         $username = $db['username'];
         $password = $db['password'];
 
-        $mysqlDir = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin';
+        $mysqlDir = env('DB_MYSQL_DIR', 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin');
 
         $filename = 'cash_tracker_' . now()->format('Y-m-d_His') . '.sql';
         $filepath = storage_path('app/' . $filename);
 
+        $userOption = !empty($password) ? '--password=' . escapeshellarg($password) : '--skip-password';
+
         $command = sprintf(
-            '"%s" --host=%s --port=%s --user=%s %s %s > "%s" 2>&1',
-            $mysqlDir . '\mysqldump.exe',
+            '%s %s --host=%s --port=%s --user=%s %s > %s 2>&1',
+            escapeshellarg($mysqlDir . '\mysqldump.exe'),
+            $userOption,
             escapeshellarg($host),
             escapeshellarg($port),
             escapeshellarg($username),
-            !empty($password) ? '--password=' . escapeshellarg($password) : '--skip-password',
             escapeshellarg($database),
-            $filepath
+            escapeshellarg($filepath)
         );
 
         exec($command, $output, $exitCode);
@@ -59,18 +61,20 @@ class BackupController extends Controller
         $username = $db['username'];
         $password = $db['password'];
 
-        $mysqlDir = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin';
+        $mysqlDir = env('DB_MYSQL_DIR', 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin');
         $filepath = $request->file('backup_file')->getRealPath();
 
+        $userOption = !empty($password) ? '--password=' . escapeshellarg($password) : '--skip-password';
+
         $command = sprintf(
-            '"%s" --host=%s --port=%s --user=%s %s %s < "%s" 2>&1',
-            $mysqlDir . '\mysql.exe',
+            '%s %s --host=%s --port=%s --user=%s %s < %s 2>&1',
+            escapeshellarg($mysqlDir . '\mysql.exe'),
+            $userOption,
             escapeshellarg($host),
             escapeshellarg($port),
             escapeshellarg($username),
-            !empty($password) ? '--password=' . escapeshellarg($password) : '--skip-password',
             escapeshellarg($database),
-            $filepath
+            escapeshellarg($filepath)
         );
 
         exec($command, $output, $exitCode);

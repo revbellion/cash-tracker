@@ -97,6 +97,7 @@
                                 <td>{{ $trx->account->name ?? '-' }}</td>
                                 <td>{{ $trx->description ?? '-' }}</td>
                                 <td class="pe-3">
+                                    @if(Auth::user()->isAdmin())
                                     <form autocomplete="off" action="{{ route('stock.in.destroy', $trx->id) }}" method="POST" class="d-inline"
                                         onsubmit="return confirm('Yakin hapus stok masuk {{ $trx->product->name ?? '' }} ({{ $trx->qty }} {{ $trx->product->unit ?? '' }})?')">
                                         @csrf
@@ -105,6 +106,7 @@
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </td>
                             </tr>
                             @empty
@@ -114,6 +116,21 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 summary-bar" style="border-top:2px solid var(--border-subtle);">
+                <div>
+                    <span style="font-size:0.8rem;color:var(--text-muted);">{{ $history->count() }} dari {{ $history->total() }} data</span>
+                </div>
+                <div class="d-flex gap-4">
+                    <div>
+                        <span style="font-size:0.75rem;color:var(--text-muted);">Total Qty</span>
+                        <span class="fw-bold ms-2" style="font-size:0.95rem;color:var(--text-primary);">{{ number_format($totalQty, 0, ',', '.') }}</span>
+                    </div>
+                    <div>
+                        <span style="font-size:0.75rem;color:var(--text-muted);">Total Nilai</span>
+                        <span class="fw-bold ms-2" style="font-size:0.95rem;color:var(--text-primary);">{{ rp($totalValue) }}</span>
+                    </div>
                 </div>
             </div>
             @if($history->hasPages())

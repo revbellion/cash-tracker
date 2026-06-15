@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 dashboard-actions">
         <button type="button" class="btn btn-modern btn-success" data-bs-toggle="modal" data-bs-target="#modalCepatPendapatan">
             <i class="fas fa-plus me-1"></i>Pendapatan
         </button>
@@ -259,6 +259,7 @@
                 <span class="fw-semibold">Saldo Digital</span>
             </div>
             <div class="card-body p-0">
+                <div class="table-responsive">
                 <table class="table table-modern mb-0">
                     <thead>
                         <tr>
@@ -280,6 +281,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>
@@ -315,6 +317,7 @@
                 <span class="fw-semibold">Mutasi Terakhir</span>
             </div>
             <div class="card-body p-0">
+                <div class="table-responsive">
                 <table class="table table-modern mb-0">
                     <thead>
                         <tr>
@@ -335,6 +338,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>
@@ -345,6 +349,7 @@
                 <span class="fw-semibold">Profit 7 Hari</span>
             </div>
             <div class="card-body p-0">
+                <div class="table-responsive">
                 <table class="table table-modern mb-0">
                     <thead>
                         <tr>
@@ -367,6 +372,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>

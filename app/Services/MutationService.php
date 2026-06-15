@@ -35,7 +35,7 @@ class MutationService
         });
     }
 
-    public function getAll(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getAll(array $filters = []): array
     {
         $query = Mutation::with('fromAccount', 'toAccount');
 
@@ -50,10 +50,15 @@ class MutationService
         if (!empty($filters['search'])) {
             $s = $filters['search'];
             $query->where(function ($q) use ($s) {
-                $q->where('description', 'like', "%{$s}%");
+                $q->where('description', 'like', "%{$s}%")
+                  ->orWhereHas('fromAccount', fn($q) => $q->where('name', 'like', "%{$s}%"))
+                  ->orWhereHas('toAccount', fn($q) => $q->where('name', 'like', "%{$s}%"));
             });
         }
 
-        return $query->latest()->paginate(20);
+        $totalAmount = (clone $query)->sum('amount');
+        $mutations = $query->latest()->paginate(20);
+
+        return compact('mutations', 'totalAmount');
     }
 }

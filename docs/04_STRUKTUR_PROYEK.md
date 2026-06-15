@@ -1,115 +1,145 @@
-# STRUKTUR PROYEK LARAVEL
+# STRUKTUR PROYEK
 
 ```
-ADI CELL | Cash Tracker/
+ADI CELL | POS/
 ├── app/
+│   ├── Exports/
+│   │   ├── ExpensesExport.php
+│   │   ├── IncomesExport.php
+│   │   ├── MutationsExport.php
+│   │   └── ReceivablesExport.php
+│   ├── helpers.php                    # rp() + tgl() functions
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── AccountController.php        # CRUD akun (soft-deactivate)
-│   │   │   ├── BackupController.php         # download/restore/reset DB
-│   │   │   ├── DashboardController.php      # dashboard page + data
-│   │   │   ├── ExpenseController.php        # CRUD pengeluaran
-│   │   │   ├── IncomeController.php         # CRUD pendapatan
-│   │   │   ├── MutationController.php       # CRUD mutasi antar akun
-│   │   │   ├── OpeningBalanceController.php # CRUD modal awal per periode
-│   │   │   ├── ReceivableController.php     # CRUD piutang + bayar + WA
-│   │   │   └── SummaryController.php        # ringkasan bulanan
-│   │   └── Requests/
-│   │       ├── StoreAccountRequest.php
-│   │       ├── StoreExpenseRequest.php
-│   │       ├── StoreIncomeRequest.php
-│   │       ├── StoreMutationRequest.php
-│   │       ├── StoreOpeningBalanceRequest.php
-│   │       ├── StoreReceivablePaymentRequest.php
-│   │       ├── StoreReceivableRequest.php
-│   │       ├── UpdateAccountRequest.php
-│   │       ├── UpdateExpenseRequest.php
-│   │       ├── UpdateIncomeRequest.php
-│   │       ├── UpdateMutationRequest.php
-│   │       └── UpdateReceivableRequest.php
+│   │   │   ├── Auth/
+│   │   │   │   └── LoginController.php  # login/logout + throttle
+│   │   │   ├── AccountController.php     # CRUD akun
+│   │   │   ├── BackupController.php      # download/restore/reset DB
+│   │   │   ├── BillController.php        # CRUD tagihan + bayar
+│   │   │   ├── DashboardController.php   # admin + kasir dashboard
+│   │   │   ├── ExpenseController.php     # CRUD pengeluaran
+│   │   │   ├── IncomeController.php      # CRUD pendapatan
+│   │   │   ├── MutationController.php    # CRUD mutasi antar akun
+│   │   │   ├── OpeningBalanceController.php  # CRUD modal awal
+│   │   │   ├── ProductCategoryController.php # CRUD kategori barang
+│   │   │   ├── ProductController.php     # CRUD produk + history
+│   │   │   ├── ReceivableController.php  # CRUD piutang + bayar + WA
+│   │   │   ├── StockController.php       # POS, stok in, opname, receipt
+│   │   │   ├── SummaryController.php     # ringkasan bulanan
+│   │   │   └── UserController.php        # CRUD user + permissions
+│   │   ├── Middleware/
+│   │   │   ├── AdminMiddleware.php       # admin check
+│   │   │   └── CheckRole.php             # permission check
+│   │   └── Requests/                     # 14 Form Request classes
 │   ├── Models/
-│   │   ├── Account.php
+│   │   ├── Account.php                   # + active() scope
+│   │   ├── BillPayment.php
 │   │   ├── Expense.php
 │   │   ├── Income.php
 │   │   ├── Mutation.php
 │   │   ├── OpeningBalance.php
-│   │   ├── Receivable.php
+│   │   ├── Product.php                   # + stock_value, is_low_stock
+│   │   ├── ProductCategory.php
+│   │   ├── Receivable.php                # + remaining, status_badge
 │   │   ├── ReceivablePayment.php
-│   │   └── User.php              # Laravel default, tidak dipakai
+│   │   ├── RecurringBill.php
+│   │   ├── StockTransaction.php
+│   │   └── User.php                      # + isAdmin(), hasPermission()
 │   ├── Providers/
-│   │   └── AppServiceProvider.php # view composer → unpaid piutang count
-│   ├── Services/
-│   │   ├── DashboardService.php  # hitung equity, profit, saldo per akun
-│   │   ├── ExpenseService.php    # CRUD pengeluaran
-│   │   ├── IncomeService.php     # CRUD pendapatan
-│   │   ├── MutationService.php   # CRUD mutasi
-│   │   └── ReceivableService.php # CRUD piutang + bayar + WA + auto due_date + auto fee
-│   └── helpers.php               # rp() + tgl() functions
+│   │   └── AppServiceProvider.php        # force HTTPS + view composer
+│   └── Services/
+│       ├── BillService.php
+│       ├── DashboardService.php          # equity, profit, chart
+│       ├── ExpenseService.php
+│       ├── IncomeService.php
+│       ├── MutationService.php
+│       ├── ReceivableService.php
+│       └── StockService.php              # stok in/out/opname/receipt
+├── bootstrap/
+│   └── app.php                           # middleware aliases + guest redirect
+├── config/
+│   ├── database.php                      # MySQL + PDO::MYSQL_ATTR_SSL_CA
+│   └── ...
 ├── database/
-│   ├── migrations/
-│   │   ├── 0001_01_01_000000_create_users_table.php
-│   │   ├── 0001_01_01_000001_create_cache_table.php
-│   │   ├── 0001_01_01_000002_create_jobs_table.php
-│   │   ├── 2026_06_10_115248_create_accounts_table.php
-│   │   ├── 2026_06_10_115249_create_opening_balances_table.php
-│   │   ├── 2026_06_10_115249_create_mutations_table.php
-│   │   ├── 2026_06_10_115250_create_expenses_table.php
-│   │   ├── 2026_06_10_115250_create_incomes_table.php
-│   │   ├── 2026_06_10_115250_create_receivables_table.php
-│   │   ├── 2026_06_10_115251_create_receivable_payments_table.php
-│   │   ├── 2026_06_10_123123_add_category_to_incomes_table.php
-│   │   └── 2026_06_10_172755_add_fee_to_receivables_table.php
-│   └── seeders/
-│       ├── AccountSeeder.php     # 10 akun default
-│       └── DatabaseSeeder.php    # panggil AccountSeeder
+│   └── migrations/                       # ~30 migration files
 ├── resources/
 │   └── views/
-│       ├── layouts/
-│       │   └── app.blade.php     # sidebar layout + all CSS inline (~520 baris)
-│       ├── accounts/
-│       │   └── index.blade.php   # table + modal CRUD
-│       ├── backups/
-│       │   └── index.blade.php   # 3 cards: download/restore/reset
+│       ├── accounts/index.blade.php
+│       ├── auth/login.blade.php          # light mode
+│       ├── backups/index.blade.php
+│       ├── bills/index.blade.php
 │       ├── dashboard/
-│       │   └── index.blade.php   # 8 stat cards + 3 tables + 2 quick modals
-│       ├── expenses/
-│       │   └── index.blade.php   # table + filter + modal CRUD
-│       ├── incomes/
-│       │   └── index.blade.php   # table + filter + modal CRUD
-│       ├── mutations/
-│       │   └── index.blade.php   # table + filter + modal CRUD
-│       ├── opening-balances/
-│       │   └── index.blade.php   # bulk form per periode
-│       ├── receivables/
-│       │   └── index.blade.php   # tabs + filter + table + 3 modals
-│       ├── summary/
-│       │   └── index.blade.php   # tabel per bulan + expandable rows
-│       └── welcome.blade.php     # default Laravel (tidak dipakai)
+│       │   ├── index.blade.php           # admin dashboard
+│       │   └── kasir.blade.php           # kasir dashboard
+│       ├── errors/                       # 403, 404, 419, 500, 503
+│       ├── expenses/index.blade.php
+│       ├── incomes/index.blade.php
+│       ├── layouts/app.blade.php         # sidebar + navbar + CSS ~650 baris
+│       ├── mutations/index.blade.php
+│       ├── opening-balances/index.blade.php
+│       ├── product-categories/index.blade.php
+│       ├── products/
+│       │   ├── index.blade.php
+│       │   └── history.blade.php
+│       ├── receivables/index.blade.php
+│       ├── stock/
+│       │   ├── in.blade.php
+│       │   ├── opname.blade.php
+│       │   ├── receipt.blade.php
+│       │   ├── receipt-pdf.blade.php
+│       │   ├── report.blade.php
+│       │   └── sales.blade.php
+│       ├── summary/index.blade.php
+│       └── users/
+│           ├── index.blade.php
+│           └── form.blade.php
 ├── routes/
-│   ├── web.php                   # 35 routes
-│   └── console.php               # command inspire (default)
-├── composer.json                 # Laravel ^13.8, maatwebsite/excel, autoload helpers.php
-└── Exports/
-    ├── ExpensesExport.php
-    ├── IncomesExport.php
-    ├── MutationsExport.php
-    └── ReceivablesExport.php
+│   ├── web.php                           # ~60 routes
+│   └── console.php                       # inspire (default)
+├── .env.example                          # template production-ready
+├── composer.json                         # laravel 13, maatwebsite/excel, dompdf
+├── public/
+│   ├── index.php
+│   └── template/                         # Ninja Admin (sisa, tidak dipakai)
+└── docs/                                 # dokumentasi
 ```
 
 ## Arsitektur
-- **Controller** → tipis, hanya passing data ke view / delegasi ke service
-- **Service** → business logic perhitungan saldo & profit
-- **Form Request** → validasi input + custom Indonesian messages
-- **Blade** → template + modal inline (no partials/component)
-- **CSS** → semua inline di `<style>` layout (no build step, ~520 baris)
-- **Assets** → semua via CDN (Bootstrap 5.3, Font Awesome 6, jQuery 3.7, Inter font)
-- **jQuery** → minimal, populate data ke modal edit/bayar via data attributes
-- **View Composer** → AppServiceProvider → badge unpaid count di sidebar
 
-## Yang Tidak Ada
-- Tidak ada autentikasi (User model ada tapi tidak dipakai)
-- Tidak ada API routes
-- Tidak ada queue job
-- Tidak ada Vite/Tailwind build (CSS inline + CDN)
-- Tidak ada AJAX submit (form submit biasa, redirect back)
-- Tidak ada partials/components Blade
+### Layer
+- **Controller** → tipis, validasi input + delegasi ke service + return view/redirect
+- **Service** → business logic, DB transactions, perhitungan
+- **Model** → Eloquent ORM, relationships, accessors, scopes, casts
+- **View** → Blade template, inline CSS, modal CRUD, filter form
+- **Form Request** → validasi input + custom messages (14 classes)
+
+### Middleware Pipeline
+```
+Request → ValidatePathEncoding → TrustProxies → HandleCors
+  → PreventRequestsDuringMaintenance → ValidatePostSize → TrimStrings
+  → ConvertEmptyStringsToNull → InvokeDeferredCallbacks
+  → StartSession → ShareErrorsFromSession → PreventRequestForgery
+  → Authenticate → SubstituteBindings → CheckRole/Admin
+  → Controller
+```
+
+### CSS Architecture
+- Semua inline di `<style>` layout (`app.blade.php`) — ~650 baris
+- CSS custom properties untuk theming
+- `.dark-mode` class override variabel
+- Tidak ada Vite / Tailwind / build step
+- Bootstrap 5.3, Font Awesome 6, jQuery 3.7 via CDN
+
+### Key Dependencies (composer.json)
+- `laravel/framework: ^13.15`
+- `maatwebsite/laravel-excel: ^3.1`
+- `barryvdh/laravel-dompdf: ^3.1`
+- `laravel/sanctum` (default, tidak dipakai)
+
+### Yang Tidak Ada
+- Tidak ada API / Sanctum token
+- Tidak ada queue / job
+- Tidak ada Vite / Tailwind
+- Tidak ada factory / seeder
+- Tidak ada test (PHPUnit)
+- Tidak ada email notification

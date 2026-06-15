@@ -35,7 +35,7 @@ class IncomeService
         });
     }
 
-    public function getAll(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getAll(array $filters = []): array
     {
         $query = Income::with('account');
 
@@ -59,7 +59,10 @@ class IncomeService
             });
         }
 
-        return $query->latest()->paginate(20);
+        $totalAmount = (clone $query)->sum('amount');
+        $incomes = $query->latest()->paginate(20);
+
+        return compact('incomes', 'totalAmount');
     }
 
     public function getCategories(): \Illuminate\Support\Collection

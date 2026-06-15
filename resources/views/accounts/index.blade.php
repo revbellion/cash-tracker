@@ -68,6 +68,15 @@
             </table>
         </div>
     </div>
+    <div class="d-flex justify-content-between align-items-center px-3 py-2 summary-bar" style="border-top:2px solid var(--border-subtle);">
+        <div>
+            <span style="font-size:0.8rem;color:var(--text-muted);">Total {{ $totalAccounts }} akun</span>
+        </div>
+        <div>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Aktif</span>
+            <span class="fw-bold ms-2" style="font-size:0.95rem;color:var(--text-primary);">{{ $totalActive }}</span>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade modal-modern" tabindex="-1" id="modalTambahAkun">

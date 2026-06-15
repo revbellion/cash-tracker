@@ -10,7 +10,7 @@ class SummaryController extends Controller
 {
     public function index(Request $request)
     {
-        $months = $request->get('months', 12);
+        $months = max(1, min(120, (int) $request->get('months', 12)));
 
         $results = [];
 
