@@ -20,11 +20,13 @@ class CashCounterController extends Controller
 {
     public function index(): View
     {
-        $accounts = Account::active()->get();
+        $accounts = Account::active()->where('type', 'cash')->get();
+        $cashAccount = Account::active()->where('name', config('accounts.cash_name'))->first();
+        $hasCashAccounts = $accounts->isNotEmpty();
         $period = now()->format('Y-m');
         $balances = $this->getAccountBalances($accounts, $period);
 
-        return view('cash-counter.index', compact('accounts', 'balances'));
+        return view('cash-counter.index', compact('accounts', 'cashAccount', 'balances', 'hasCashAccounts'));
     }
 
     public function history(): JsonResponse

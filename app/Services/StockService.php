@@ -46,7 +46,10 @@ class StockService
         return DB::transaction(function () use ($items, $saleInfo) {
             $receiptId = 'INV-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
 
-            $products = Product::findMany(array_column($items, 'product_id'))->keyBy('id');
+            $products = Product::whereIn('id', array_column($items, 'product_id'))
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
             $total = 0;
             $itemNames = [];
@@ -102,7 +105,9 @@ class StockService
     public function deleteSale(string $receiptId): void
     {
         DB::transaction(function () use ($receiptId) {
-            $transactions = StockTransaction::with('product')->where('receipt_id', $receiptId)->where('type', 'out')->get();
+            $transactions = StockTransaction::with(['product' => function ($query) {
+                $query->lockForUpdate();
+            }])->where('receipt_id', $receiptId)->where('type', 'out')->get();
 
             if ($transactions->isEmpty()) {
                 return;
@@ -111,7 +116,9 @@ class StockService
             $incomeId = $transactions->first()->income_id;
 
             foreach ($transactions as $trx) {
-                $trx->product->increment('stock', $trx->qty);
+                if ($trx->product) {
+                    $trx->product->increment('stock', $trx->qty);
+                }
                 $trx->delete();
             }
 
@@ -124,7 +131,10 @@ class StockService
     public function deleteStockIn(StockTransaction $transaction): void
     {
         DB::transaction(function () use ($transaction) {
-            $transaction->product->decrement('stock', $transaction->qty);
+            $product = $transaction->product()->lockForUpdate()->first();
+            if ($product) {
+                $product->decrement('stock', $transaction->qty);
+            }
             Expense::where('stock_transaction_id', $transaction->id)->delete();
             $transaction->delete();
         });

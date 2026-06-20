@@ -32,23 +32,32 @@ class IncomeController extends Controller
 
     public function store(StoreIncomeRequest $request)
     {
-        $this->incomeService->create($request->validated());
-
-        return redirect()->back()->with('success', 'Pendapatan berhasil dicatat.');
+        try {
+            $this->incomeService->create($request->validated());
+            return redirect()->back()->with('success', 'Pendapatan berhasil dicatat.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mencatat pendapatan: ' . $e->getMessage());
+        }
     }
 
     public function update(UpdateIncomeRequest $request, $id)
     {
-        $this->incomeService->update($id, $request->validated());
-
-        return redirect()->back()->with('success', 'Pendapatan berhasil diubah.');
+        try {
+            $this->incomeService->update($id, $request->validated());
+            return redirect()->back()->with('success', 'Pendapatan berhasil diubah.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengubah pendapatan: ' . $e->getMessage());
+        }
     }
 
     public function destroy($id)
     {
-        $this->incomeService->delete($id);
-
-        return redirect()->back()->with('success', 'Pendapatan berhasil dihapus.');
+        try {
+            $this->incomeService->delete($id);
+            return redirect()->back()->with('success', 'Pendapatan berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus pendapatan: ' . $e->getMessage());
+        }
     }
 
     public function export(Request $request)

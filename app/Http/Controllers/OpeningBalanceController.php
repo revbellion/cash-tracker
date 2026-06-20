@@ -29,20 +29,24 @@ class OpeningBalanceController extends Controller
             'balances.*' => ['required', 'integer', 'min:0'],
         ]);
 
-        $period = $validated['period'];
-        $balances = $validated['balances'];
+        try {
+            $period = $validated['period'];
+            $balances = $validated['balances'];
 
-        foreach ($balances as $accountId => $amount) {
-            OpeningBalance::updateOrCreate(
-                [
-                    'account_id' => $accountId,
-                    'period' => $period,
-                ],
-                ['amount' => $amount]
-            );
+            foreach ($balances as $accountId => $amount) {
+                OpeningBalance::updateOrCreate(
+                    [
+                        'account_id' => $accountId,
+                        'period' => $period,
+                    ],
+                    ['amount' => $amount]
+                );
+            }
+
+            return redirect()->back()->with('success', 'Opening balances saved successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menyimpan modal awal: ' . $e->getMessage());
         }
-
-        return redirect()->back()->with('success', 'Opening balances saved successfully.');
     }
 
     public function update(Request $request)

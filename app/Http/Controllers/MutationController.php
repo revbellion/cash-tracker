@@ -31,23 +31,32 @@ class MutationController extends Controller
 
     public function store(StoreMutationRequest $request)
     {
-        $this->mutationService->create($request->validated());
-
-        return redirect()->back()->with('success', 'Mutasi berhasil dicatat.');
+        try {
+            $this->mutationService->create($request->validated());
+            return redirect()->back()->with('success', 'Mutasi berhasil dicatat.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mencatat mutasi: ' . $e->getMessage());
+        }
     }
 
     public function update(UpdateMutationRequest $request, $id)
     {
-        $this->mutationService->update($id, $request->validated());
-
-        return redirect()->back()->with('success', 'Mutasi berhasil diubah.');
+        try {
+            $this->mutationService->update($id, $request->validated());
+            return redirect()->back()->with('success', 'Mutasi berhasil diubah.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengubah mutasi: ' . $e->getMessage());
+        }
     }
 
     public function destroy($id)
     {
-        $this->mutationService->delete($id);
-
-        return redirect()->back()->with('success', 'Mutasi berhasil dihapus.');
+        try {
+            $this->mutationService->delete($id);
+            return redirect()->back()->with('success', 'Mutasi berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus mutasi: ' . $e->getMessage());
+        }
     }
 
     public function export(Request $request)

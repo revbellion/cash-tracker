@@ -113,7 +113,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Backup & reset data — admin only
-    Route::middleware('admin')->group(function () {
+    Route::middleware(['admin', 'throttle:3,1'])->group(function () {
         Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
         Route::get('backups/download', [BackupController::class, 'download'])->name('backups.download');
         Route::post('backups/restore', [BackupController::class, 'restore'])->name('backups.restore');

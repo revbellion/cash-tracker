@@ -37,9 +37,12 @@ class ProductController extends Controller
 
         $validated['is_active'] = true;
 
-        Product::create($validated);
-
-        return redirect()->back()->with('success', 'Barang berhasil ditambahkan.');
+        try {
+            Product::create($validated);
+            return redirect()->back()->with('success', 'Barang berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menambahkan barang: ' . $e->getMessage());
+        }
     }
 
     public function update(Request $request, Product $product)
@@ -55,16 +58,22 @@ class ProductController extends Controller
             'is_active'      => 'boolean',
         ]);
 
-        $product->update($validated);
-
-        return redirect()->back()->with('success', 'Barang berhasil diubah.');
+        try {
+            $product->update($validated);
+            return redirect()->back()->with('success', 'Barang berhasil diubah.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengubah barang: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Product $product)
     {
-        $product->update(['is_active' => false]);
-
-        return redirect()->back()->with('success', 'Barang berhasil dinonaktifkan.');
+        try {
+            $product->update(['is_active' => false]);
+            return redirect()->back()->with('success', 'Barang berhasil dinonaktifkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menonaktifkan barang: ' . $e->getMessage());
+        }
     }
 
     public function history(Product $product)

@@ -27,6 +27,8 @@ class DashboardController extends Controller
             $data['period'] = $period;
             $data['accountBalances'] = $data['accounts']->pluck('balance', 'id');
             $data['accountList'] = Account::active()->get();
+            $data['cashAccount'] = Account::active()->where('name', config('accounts.cash_name'))->first();
+            $data['cashAccounts'] = Account::active()->where('type', 'cash')->get();
             $data['categories'] = Expense::select('category')->distinct()->pluck('category');
             $data['incomeCategories'] = Income::select('category')->distinct()->pluck('category');
 

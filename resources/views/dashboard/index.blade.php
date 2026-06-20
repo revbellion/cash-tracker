@@ -100,15 +100,15 @@
         </div>
     </div>
     <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid #f59e0b;">
+        <div class="card stat-card shadow-sm" style="border-left: 4px solid #06b6d4;">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">AVG HARIAN</p>
-                        <h4 class="fw-bold mb-0">{{ rp($avgDaily) }}</h4>
+                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">AVG PEMASUKAN</p>
+                        <h4 class="fw-bold mb-0">{{ rp($avgIncome) }}</h4>
                     </div>
-                    <div class="rounded-3 p-2" style="background:#fffbeb;">
-                        <i class="fas fa-calendar-day" style="color:#f59e0b;"></i>
+                    <div class="rounded-3 p-2" style="background:#ecfeff;">
+                        <i class="fas fa-chart-line" style="color:#06b6d4;"></i>
                     </div>
                 </div>
             </div>
@@ -494,10 +494,15 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Ke Akun</label>
+                    @if($cashAccounts->isEmpty())
+                        <div class="alert alert-warning py-2" style="font-size:0.8rem;">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Tidak ada akun cash aktif. Silakan tambah akun cash di menu Akun.
+                        </div>
+                    @endif
                     <select name="to_account_id" class="form-select" required>
-                        <option value="">Pilih akun</option>
-                        @foreach($accountList as $account)
-                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @foreach($cashAccounts as $account)
+                        <option value="{{ $account->id }}" {{ $cashAccount && $account->id === $cashAccount->id ? 'selected' : '' }}>{{ $account->name }}</option>
                         @endforeach
                     </select>
                 </div>

@@ -21,8 +21,8 @@ class DashboardService
         $dateEnd = Carbon::parse($dateStart)->endOfMonth();
 
         [$accounts, $totalExpense, $totalOpeningBalance, $totalMutationsIn, $totalMutationsOut, $totalIncome] = $this->loadBalances($period, $dateStart, $dateEnd);
-        [$totalReceivable, $totalEquity, $netProfit] = $this->getReceivableAndEquity($accounts, $totalOpeningBalance);
-        [$cashBalance, $bcaBalance, $avgDaily] = $this->getCashBcaSummary($accounts, $totalExpense, $dateEnd, $period);
+        [$totalReceivable, $totalEquity, $netProfit] = $this->getReceivableAndEquity($accounts, $totalOpeningBalance, $dateStart);
+        [$cashBalance, $bcaBalance, $avgIncome] = $this->getCashBcaSummary($accounts, $totalIncome, $dateEnd, $period);
 
         $products = Product::activeWithCategory()->get();
 
@@ -37,7 +37,7 @@ class DashboardService
             'netProfit' => $netProfit,
             'bcaBalance' => $bcaBalance,
             'totalIncome' => $totalIncome,
-            'avgDaily' => $avgDaily,
+            'avgIncome' => $avgIncome,
             'cashBalance' => $cashBalance,
             'recentMutations' => Mutation::with('fromAccount', 'toAccount')->latest()->take(10)->get(),
             'recentReceivables' => Receivable::with('receivablePayments')->latest()->take(10)->get(),
@@ -82,20 +82,29 @@ class DashboardService
         ];
     }
 
-    private function getReceivableAndEquity($accounts, int $totalOpeningBalance): array
+    private function getReceivableAndEquity($accounts, int $totalOpeningBalance, string $dateStart): array
     {
+        $unpaidSub = DB::raw('(SELECT receivable_id, SUM(amount) as paid FROM receivable_payments GROUP BY receivable_id) as rp');
+
         $totalReceivable = DB::table('receivables')
-            ->leftJoin(DB::raw('(SELECT receivable_id, SUM(amount) as paid FROM receivable_payments GROUP BY receivable_id) as rp'), 'receivables.id', '=', 'rp.receivable_id')
+            ->leftJoin($unpaidSub, 'receivables.id', '=', 'rp.receivable_id')
             ->where('receivables.status', 'unpaid')
+            ->selectRaw('COALESCE(SUM(receivables.amount - COALESCE(rp.paid, 0)), 0) as total_remaining')
+            ->value('total_remaining') ?? 0;
+
+        $priorReceivable = DB::table('receivables')
+            ->leftJoin($unpaidSub, 'receivables.id', '=', 'rp.receivable_id')
+            ->where('receivables.status', 'unpaid')
+            ->where('receivables.date', '<', $dateStart)
             ->selectRaw('COALESCE(SUM(receivables.amount - COALESCE(rp.paid, 0)), 0) as total_remaining')
             ->value('total_remaining') ?? 0;
 
         $totalEquity = $accounts->sum('balance') + $totalReceivable;
 
-        return [$totalReceivable, $totalEquity, $totalEquity - $totalOpeningBalance];
+        return [$totalReceivable, $totalEquity, $totalEquity - ($totalOpeningBalance + $priorReceivable)];
     }
 
-    private function getCashBcaSummary($accounts, int $totalExpense, Carbon $dateEnd, string $period): array
+    private function getCashBcaSummary($accounts, int $totalIncome, Carbon $dateEnd, string $period): array
     {
         $cashBalance = (int) ($accounts->firstWhere('name', config('accounts.cash_name'))->balance ?? 0);
         $bcaBalance = (int) ($accounts->firstWhere('name', config('accounts.bca_name'))->balance ?? 0);
@@ -105,7 +114,7 @@ class DashboardService
         $isCurrentPeriod = ($year == $now->year && $month == $now->month);
         $dayOfMonth = $isCurrentPeriod ? $now->day : $dateEnd->day;
 
-        return [$cashBalance, $bcaBalance, $dayOfMonth > 0 ? $totalExpense / $dayOfMonth : 0];
+        return [$cashBalance, $bcaBalance, $dayOfMonth > 0 ? $totalIncome / $dayOfMonth : 0];
     }
 
     private function getDailyProfits(): array
@@ -116,13 +125,16 @@ class DashboardService
         $dailyIncomes = Income::whereBetween('date', [$sevenDaysAgo, $today])
             ->selectRaw('DATE(date) as d, SUM(amount) as total')->groupBy('d')->pluck('total', 'd');
 
+        $dailyPayments = DB::table('receivable_payments')->whereBetween('date', [$sevenDaysAgo, $today])
+            ->selectRaw('DATE(date) as d, SUM(amount) as total')->groupBy('d')->pluck('total', 'd');
+
         $dailyExpenses = Expense::whereBetween('date', [$sevenDaysAgo, $today])
             ->selectRaw('DATE(date) as d, SUM(amount) as total')->groupBy('d')->pluck('total', 'd');
 
         $dailyProfits = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i)->toDateString();
-            $income = (int) ($dailyIncomes[$date] ?? 0);
+            $income = (int) ($dailyIncomes[$date] ?? 0) + (int) ($dailyPayments[$date] ?? 0);
             $expense = (int) ($dailyExpenses[$date] ?? 0);
             $dailyProfits[] = ['date' => $date, 'income' => $income, 'expense' => $expense, 'profit' => $income - $expense];
         }

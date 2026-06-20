@@ -20,9 +20,12 @@ class ProductCategoryController extends Controller
             'name' => 'required|string|max:100|unique:product_categories,name',
         ]);
 
-        ProductCategory::create($validated);
-
-        return redirect()->back()->with('success', 'Kategori berhasil ditambahkan.');
+        try {
+            ProductCategory::create($validated);
+            return redirect()->back()->with('success', 'Kategori berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menambahkan kategori: ' . $e->getMessage());
+        }
     }
 
     public function update(Request $request, ProductCategory $productCategory)
@@ -31,9 +34,12 @@ class ProductCategoryController extends Controller
             'name' => 'required|string|max:100|unique:product_categories,name,' . $productCategory->id,
         ]);
 
-        $productCategory->update($validated);
-
-        return redirect()->back()->with('success', 'Kategori berhasil diubah.');
+        try {
+            $productCategory->update($validated);
+            return redirect()->back()->with('success', 'Kategori berhasil diubah.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengubah kategori: ' . $e->getMessage());
+        }
     }
 
     public function destroy(ProductCategory $productCategory)
@@ -42,8 +48,11 @@ class ProductCategoryController extends Controller
             return redirect()->back()->with('error', 'Kategori tidak bisa dihapus karena masih memiliki barang.');
         }
 
-        $productCategory->delete();
-
-        return redirect()->back()->with('success', 'Kategori berhasil dihapus.');
+        try {
+            $productCategory->delete();
+            return redirect()->back()->with('success', 'Kategori berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus kategori: ' . $e->getMessage());
+        }
     }
 }

@@ -14,6 +14,7 @@ class Expense extends Model
         'amount',
         'description',
         'stock_transaction_id',
+        'receivable_id',
     ];
 
     protected function casts(): array
@@ -33,4 +34,10 @@ class Expense extends Model
     {
         return $this->belongsTo(StockTransaction::class);
     }
+
+    public function receivable(): BelongsTo
+    {
+        return $this->belongsTo(Receivable::class);
+    }
+
 }

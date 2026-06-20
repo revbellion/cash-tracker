@@ -20,22 +20,31 @@ class AccountController extends Controller
 
     public function store(StoreAccountRequest $request)
     {
-        Account::create($request->validated());
-
-        return redirect()->back()->with('success', 'Akun berhasil ditambahkan.');
+        try {
+            Account::create($request->validated());
+            return redirect()->back()->with('success', 'Akun berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menambahkan akun: ' . $e->getMessage());
+        }
     }
 
     public function update(UpdateAccountRequest $request, Account $account)
     {
-        $account->update($request->validated());
-
-        return redirect()->back()->with('success', 'Akun berhasil diubah.');
+        try {
+            $account->update($request->validated());
+            return redirect()->back()->with('success', 'Akun berhasil diubah.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengubah akun: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Account $account)
     {
-        $account->update(['is_active' => false]);
-
-        return redirect()->back()->with('success', 'Akun berhasil dinonaktifkan.');
+        try {
+            $account->update(['is_active' => false]);
+            return redirect()->back()->with('success', 'Akun berhasil dinonaktifkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menonaktifkan akun: ' . $e->getMessage());
+        }
     }
 }

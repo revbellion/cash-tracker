@@ -129,6 +129,11 @@ class UserController extends Controller
         if ($user->isAdmin()) {
             return back()->withErrors(['Tidak bisa menghapus user admin.']);
         }
+
+        if ($user->id === Auth::id()) {
+            return back()->withErrors(['Tidak bisa menghapus akun sendiri.']);
+        }
+
         $user->delete();
         return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
     }

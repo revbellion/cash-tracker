@@ -57,10 +57,15 @@
                         <i class="fas fa-wallet" style="color:var(--theme-primary);font-size:0.9rem;"></i>
                         <span style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Akun Kas</span>
                     </div>
+                    @if(!$hasCashAccounts)
+                        <div class="alert alert-warning py-2" style="font-size:0.8rem;">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Tidak ada akun cash yang aktif. Silakan tambah akun cash terlebih dahulu.
+                        </div>
+                    @endif
                     <select id="account-select" class="form-select form-select-sm mb-3" style="font-size:0.85rem;" onchange="onAccountChange()">
-                        <option value="">-- Pilih Akun --</option>
                         @foreach($accounts as $account)
-                            <option value="{{ $account->id }}" data-balance="{{ $balances[$account->id] ?? 0 }}">
+                            <option value="{{ $account->id }}" data-balance="{{ $balances[$account->id] ?? 0 }}" {{ $cashAccount && $account->id === $cashAccount->id ? 'selected' : '' }}>
                                 {{ $account->name }} ({{ ucfirst($account->type) }})
                             </option>
                         @endforeach
@@ -777,6 +782,15 @@ document.addEventListener('DOMContentLoaded', function() {
     buildCards();
     updateTotal();
     loadHistory();
+
+    const accountSelect = document.getElementById('account-select');
+    if (accountSelect && accountSelect.value) {
+        onAccountChange();
+        const option = accountSelect.options[accountSelect.selectedIndex];
+        const balance = parseInt(option.dataset.balance) || 0;
+        document.getElementById('target-amount').value = balance;
+        updateTotal();
+    }
 });
 </script>
 @endpush

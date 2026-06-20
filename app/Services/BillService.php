@@ -92,8 +92,15 @@ class BillService
 
     public function deleteBill(RecurringBill $bill): void
     {
-        $bill->payments()->delete();
-        $bill->delete();
+        DB::transaction(function () use ($bill) {
+            $bill->payments()->each(function ($payment) {
+                if ($payment->expense_id) {
+                    Expense::where('id', $payment->expense_id)->delete();
+                }
+            });
+            $bill->payments()->delete();
+            $bill->delete();
+        });
     }
 
     public function getPaymentCategories(): array

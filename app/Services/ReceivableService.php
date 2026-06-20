@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Account;
+use App\Models\Expense;
 use App\Models\Receivable;
 use App\Models\ReceivablePayment;
 use Carbon\Carbon;
@@ -14,11 +16,22 @@ class ReceivableService
         $now = Carbon::now();
         $parsedDate = Carbon::parse($data['date']);
         $data['date'] = $parsedDate->format('Y-m-d') . ' ' . $now->format('H:i:s');
-        $data['due_date'] = $parsedDate->addDays(3);
+        $data['due_date'] = $parsedDate->copy()->addDays(3);
         $data['status'] = 'unpaid';
 
         return DB::transaction(function () use ($data) {
-            return Receivable::create($data);
+            $receivable = Receivable::create($data);
+
+            Expense::create([
+                'account_id' => $this->resolveCashAccountId(),
+                'amount' => $receivable->amount,
+                'category' => 'Piutang',
+                'description' => "Piutang a/n {$receivable->name}",
+                'date' => $receivable->date,
+                'receivable_id' => $receivable->id,
+            ]);
+
+            return $receivable;
         });
     }
 
@@ -31,12 +44,26 @@ class ReceivableService
                 throw new \DomainException('Hanya piutang unpaid yang bisa diedit.');
             }
 
+            if ($receivable->receivablePayments()->exists()) {
+                throw new \DomainException('Piutang yang sudah memiliki pembayaran tidak bisa diedit.');
+            }
+
             $now = Carbon::now();
             $parsedDate = Carbon::parse($data['date']);
             $data['date'] = $parsedDate->format('Y-m-d') . ' ' . $now->format('H:i:s');
-            $data['due_date'] = $parsedDate->addDays(3);
+            $data['due_date'] = $parsedDate->copy()->addDays(3);
 
             $receivable->update($data);
+
+            if ($expense = $receivable->expense) {
+                $expense->update([
+                    'account_id' => $this->resolveCashAccountId(),
+                    'amount' => $receivable->amount,
+                    'description' => "Piutang a/n {$receivable->name}",
+                    'date' => $receivable->date,
+                ]);
+            }
+
             return $receivable;
         });
     }
@@ -50,6 +77,12 @@ class ReceivableService
             $paymentDate = !empty($data['date'])
                 ? Carbon::parse($data['date'])->format('Y-m-d') . ' ' . $now->format('H:i:s')
                 : $now->format('Y-m-d H:i:s');
+
+            $remaining = $receivable->amount - $receivable->receivablePayments()->sum('amount');
+
+            if ($data['amount'] > $remaining) {
+                throw new \DomainException('Pembayaran melebihi sisa piutang. Sisa: Rp ' . number_format($remaining, 0, ',', '.'));
+            }
 
             $payment = ReceivablePayment::create([
                 'receivable_id' => $receivableId,
@@ -73,6 +106,7 @@ class ReceivableService
         return DB::transaction(function () use ($id) {
             $receivable = Receivable::findOrFail($id);
             $receivable->receivablePayments()->delete();
+            $receivable->expense()->delete();
             return $receivable->delete();
         });
     }
@@ -140,5 +174,16 @@ class ReceivableService
         $phone = preg_replace('/[^0-9]/', '', ltrim((string) $receivable->phone, '+'));
 
         return 'https://wa.me/' . $phone . '?text=' . urlencode($text);
+    }
+
+    private function resolveCashAccountId(): int
+    {
+        $account = Account::active()->where('name', config('accounts.cash_name'))->first();
+
+        if (! $account) {
+            throw new \DomainException('Akun cash tidak ditemukan. Silakan buat akun cash terlebih dahulu.');
+        }
+
+        return $account->id;
     }
 }

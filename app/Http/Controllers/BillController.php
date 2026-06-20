@@ -29,23 +29,32 @@ class BillController extends Controller
 
     public function store(StoreRecurringBillRequest $request)
     {
-        $this->billService->createBill($request->validated());
-
-        return redirect()->back()->with('success', 'Tagihan berhasil ditambahkan.');
+        try {
+            $this->billService->createBill($request->validated());
+            return redirect()->back()->with('success', 'Tagihan berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menambahkan tagihan: ' . $e->getMessage());
+        }
     }
 
     public function update(UpdateRecurringBillRequest $request, RecurringBill $bill)
     {
-        $this->billService->updateBill($bill, $request->validated());
-
-        return redirect()->back()->with('success', 'Tagihan berhasil diubah.');
+        try {
+            $this->billService->updateBill($bill, $request->validated());
+            return redirect()->back()->with('success', 'Tagihan berhasil diubah.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengubah tagihan: ' . $e->getMessage());
+        }
     }
 
     public function destroy(RecurringBill $bill)
     {
-        $this->billService->deleteBill($bill);
-
-        return redirect()->back()->with('success', 'Tagihan berhasil dihapus.');
+        try {
+            $this->billService->deleteBill($bill);
+            return redirect()->back()->with('success', 'Tagihan berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus tagihan: ' . $e->getMessage());
+        }
     }
 
     public function pay(Request $request, RecurringBill $recurring_bill)
@@ -56,13 +65,16 @@ class BillController extends Controller
             'account_id' => 'required|exists:accounts,id',
         ]);
 
-        $this->billService->payBill(
-            $recurring_bill,
-            $request->period,
-            $request->amount,
-            $request->account_id
-        );
-
-        return redirect()->back()->with('success', 'Tagihan ' . $recurring_bill->name . ' berhasil dibayar.');
+        try {
+            $this->billService->payBill(
+                $recurring_bill,
+                $request->period,
+                $request->amount,
+                $request->account_id
+            );
+            return redirect()->back()->with('success', 'Tagihan ' . $recurring_bill->name . ' berhasil dibayar.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal membayar tagihan: ' . $e->getMessage());
+        }
     }
 }
