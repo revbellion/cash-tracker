@@ -243,52 +243,6 @@
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card card-modern shadow-sm h-100">
-            <div class="card-header d-flex align-items-center">
-                <i class="fas fa-chart-pie me-2" style="color:#f59e0b;"></i>
-                <span class="fw-semibold">Pengeluaran Bulan Ini</span>
-            </div>
-            <div class="card-body d-flex align-items-center">
-                <canvas id="chartPie" height="160"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3 mt-1">
-    <div class="col-lg-4">
-        <div class="card card-modern shadow-sm">
-            <div class="card-header d-flex align-items-center">
-                <i class="fas fa-exchange-alt me-2" style="color:#10b981;"></i>
-                <span class="fw-semibold">Mutasi Terakhir</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                <table class="table table-modern mb-0">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Dari</th>
-                            <th>Ke</th>
-                            <th class="text-end pe-3">Nominal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($recentMutations as $mutation)
-                        <tr>
-                            <td class="ps-3">{{ tgl($mutation->date) }}</td>
-                            <td>{{ $mutation->fromAccount->name ?? '-' }}</td>
-                            <td>{{ $mutation->toAccount->name ?? '-' }}</td>
-                            <td class="text-end pe-3 fw-semibold">{{ rp($mutation->amount) }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
         <div class="card card-modern shadow-sm">
             <div class="card-header d-flex align-items-center">
                 <i class="fas fa-chart-line me-2" style="color:#f59e0b;"></i>
