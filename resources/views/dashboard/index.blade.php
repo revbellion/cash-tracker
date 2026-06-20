@@ -49,15 +49,30 @@
         </div>
     </div>
     <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid #10b981;">
+        <div class="card stat-card shadow-sm" style="border-left: 4px solid {{ $netProfit >= 0 ? '#10b981' : '#ef4444' }};">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">PIUTANG BELUM DIBAYAR</p>
-                        <h4 class="fw-bold mb-0">{{ rp($totalReceivable) }}</h4>
+                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">PROFIT BERSIH</p>
+                        <h4 class="fw-bold mb-0">{{ rp($netProfit) }}</h4>
                     </div>
-                    <div class="rounded-3 p-2" style="background:#ecfdf5;">
-                        <i class="fas fa-hand-holding-usd" style="color:#10b981;"></i>
+                    <div class="rounded-3 p-2" style="background:#{{ $netProfit >= 0 ? 'ecfdf5' : 'fef2f2' }};">
+                        <i class="fas {{ $netProfit >= 0 ? 'fa-arrow-up' : 'fa-arrow-down' }}" style="color:{{ $netProfit >= 0 ? '#10b981' : '#ef4444' }};"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6">
+        <div class="card stat-card shadow-sm" style="border-left: 4px solid #22c55e;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">OMSET BULAN INI</p>
+                        <h4 class="fw-bold mb-0">{{ rp($totalIncome) }}</h4>
+                    </div>
+                    <div class="rounded-3 p-2" style="background:#f0fdf4;">
+                        <i class="fas fa-chart-line" style="color:#22c55e;"></i>
                     </div>
                 </div>
             </div>
@@ -72,22 +87,25 @@
                         <h4 class="fw-bold mb-0">{{ rp($totalExpense) }}</h4>
                     </div>
                     <div class="rounded-3 p-2" style="background:#fffbeb;">
-                        <i class="fas fa-shopping-cart" style="color:#f59e0b;"></i>
+                        <i class="fas fa-receipt" style="color:#f59e0b;"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<div class="row g-3 mb-4">
     <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid {{ $netProfit >= 0 ? '#10b981' : '#ef4444' }};">
+        <div class="card stat-card shadow-sm" style="border-left: 4px solid #14b8a6;">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">PROFIT BERSIH</p>
-                        <h4 class="fw-bold mb-0">{{ rp($netProfit) }}</h4>
+                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">SALDO CASH</p>
+                        <h4 class="fw-bold mb-0">{{ rp($cashBalance) }}</h4>
                     </div>
-                    <div class="rounded-3 p-2" style="background:#{{ $netProfit >= 0 ? 'ecfdf5' : 'fef2f2' }};">
-                        <i class="fas {{ $netProfit >= 0 ? 'fa-arrow-up' : 'fa-arrow-down' }}" style="color:{{ $netProfit >= 0 ? '#10b981' : '#ef4444' }};"></i>
+                    <div class="rounded-3 p-2" style="background:#f0fdfa;">
+                        <i class="fas fa-money-bill-wave" style="color:#14b8a6;"></i>
                     </div>
                 </div>
             </div>
@@ -109,65 +127,15 @@
         </div>
     </div>
     <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid #06b6d4;">
+        <div class="card stat-card shadow-sm" style="border-left: 4px solid #10b981;">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">AVG PEMASUKAN</p>
-                        <h4 class="fw-bold mb-0">{{ rp($avgIncome) }}</h4>
+                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">PIUTANG BELUM DIBAYAR</p>
+                        <h4 class="fw-bold mb-0">{{ rp($totalReceivable) }}</h4>
                     </div>
-                    <div class="rounded-3 p-2" style="background:#ecfeff;">
-                        <i class="fas fa-chart-line" style="color:#06b6d4;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid #06b6d4;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">OMSET BULAN INI</p>
-                        <h4 class="fw-bold mb-0">{{ rp($totalIncome) }}</h4>
-                    </div>
-                    <div class="rounded-3 p-2" style="background:#ecfeff;">
-                        <i class="fas fa-chart-line" style="color:#06b6d4;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid #14b8a6;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">SALDO CASH</p>
-                        <h4 class="fw-bold mb-0">{{ rp($cashBalance) }}</h4>
-                    </div>
-                    <div class="rounded-3 p-2" style="background:#f0fdfa;">
-                        <i class="fas fa-money-bill-wave" style="color:#14b8a6;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-@if($totalStockValue > 0 || $lowStockCount > 0)
-<div class="row g-3 mb-4">
-    <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid #8b5cf6;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">NILAI STOK</p>
-                        <h4 class="fw-bold mb-0">{{ rp($totalStockValue) }}</h4>
-                    </div>
-                    <div class="rounded-3 p-2" style="background:#f5f3ff;">
-                        <i class="fas fa-box" style="color:#8b5cf6;"></i>
+                    <div class="rounded-3 p-2" style="background:#ecfdf5;">
+                        <i class="fas fa-hand-holding-usd" style="color:#10b981;"></i>
                     </div>
                 </div>
             </div>
@@ -188,38 +156,7 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid #f59e0b;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">PEMBELIAN STOK</p>
-                        <h4 class="fw-bold mb-0">{{ rp($periodPurchase) }}</h4>
-                    </div>
-                    <div class="rounded-3 p-2" style="background:#fffbeb;">
-                        <i class="fas fa-arrow-down" style="color:#f59e0b;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-sm-6">
-        <div class="card stat-card shadow-sm" style="border-left: 4px solid {{ $periodSale >= $periodPurchase ? '#10b981' : '#ef4444' }};">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">PENJUALAN STOK</p>
-                        <h4 class="fw-bold mb-0">{{ rp($periodSale) }}</h4>
-                    </div>
-                    <div class="rounded-3 p-2" style="background:#{{ $periodSale >= $periodPurchase ? 'ecfdf5' : 'fef2f2' }};">
-                        <i class="fas fa-arrow-up" style="color:{{ $periodSale >= $periodPurchase ? '#10b981' : '#ef4444' }};"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-@endif
 
 @php $bs = $billSummary; @endphp
 @if($bs['total'] > 0)
