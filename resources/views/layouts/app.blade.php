@@ -72,6 +72,12 @@
                     @endif
                 </a>
                 @endif
+                @if(Auth::user()->hasPermission(config('permissions.RECEIVABLES')))
+                <a class="nav-link sub-link {{ request()->routeIs('pending.*') ? 'active' : '' }}" href="{{ route('pending.index') }}">
+                    <i class="fas fa-clock"></i>
+                    <span class="nav-label">Pending</span>
+                </a>
+                @endif
                 @if(Auth::user()->hasPermission(config('permissions.SUMMARY')))
                 <a class="nav-link sub-link {{ request()->routeIs('summary.*') ? 'active' : '' }}" href="{{ route('summary.index') }}">
                     <i class="fas fa-chart-bar"></i>

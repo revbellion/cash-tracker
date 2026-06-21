@@ -108,6 +108,13 @@ Route::middleware('auth')->group(function () {
         Route::get('receivables/{receivable}/whatsapp', [ReceivableController::class, 'whatsappLink'])->name('receivables.whatsapp');
         Route::get('receivables/export', [ReceivableController::class, 'export'])->name('receivables.export');
     });
+    Route::middleware('permission:receivables')->group(function () {
+        Route::get('pending', [\App\Http\Controllers\PendingTransactionController::class, 'index'])->name('pending.index');
+        Route::post('pending', [\App\Http\Controllers\PendingTransactionController::class, 'store'])->name('pending.store');
+        Route::post('pending/{id}/complete', [\App\Http\Controllers\PendingTransactionController::class, 'complete'])->name('pending.complete');
+        Route::delete('pending/{id}', [\App\Http\Controllers\PendingTransactionController::class, 'destroy'])->name('pending.destroy');
+        Route::get('pending/export', [\App\Http\Controllers\PendingTransactionController::class, 'export'])->name('pending.export');
+    });
     Route::middleware('permission:summary')->group(function () {
         Route::get('summary', [SummaryController::class, 'index'])->name('summary.index');
     });
