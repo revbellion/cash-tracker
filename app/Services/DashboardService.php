@@ -72,6 +72,14 @@ class DashboardService
             );
         }
 
+        // Kurangkan total piutang unpaid dari cash
+        $totalPiutangUnpaid = Receivable::where('status', 'unpaid')->sum('amount');
+        $cashAccountId = config('accounts.cash_name');
+        $cashAccount = $accounts->firstWhere('name', $cashAccountId);
+        if ($cashAccount) {
+            $cashAccount->balance -= $totalPiutangUnpaid;
+        }
+
         return [
             $accounts,
             $expenses->sum(),
