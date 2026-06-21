@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Account;
 use App\Models\PendingTransaction;
 use App\Models\Income;
 use App\Models\Expense;
@@ -25,6 +26,33 @@ class PendingTransactionService
                 'status' => 'pending',
                 'pending_date' => $pendingDate,
             ]);
+
+            // Flow berdasarkan tipe
+            if ($data['type'] === 'transfer') {
+                // Transfer: BCA langsung bertambah (Income)
+                $bca = Account::where('name', config('accounts.bca_name'))->first();
+                if ($bca) {
+                    Income::create([
+                        'account_id' => $bca->id,
+                        'amount' => $pending->amount,
+                        'category' => 'Transfer Masuk',
+                        'description' => "Transfer dari {$pending->description}",
+                        'date' => $pendingDate,
+                    ]);
+                }
+            } else {
+                // EDC/QRIS: Cash langsung berkurang (Expense)
+                $cash = Account::where('name', config('accounts.cash_name'))->first();
+                if ($cash) {
+                    Expense::create([
+                        'account_id' => $cash->id,
+                        'amount' => $pending->amount,
+                        'category' => 'Pending ' . strtoupper($pending->type),
+                        'description' => "Cash keluar untuk {$pending->description}",
+                        'date' => $pendingDate,
+                    ]);
+                }
+            }
 
             return $pending;
         });
@@ -52,23 +80,23 @@ class PendingTransactionService
                 'completed_account_id' => $data['completed_account_id'] ?? null,
             ]);
 
-            // Buat Income atau Expense berdasarkan tipe
-            if ($data['completed_type'] === 'masuk') {
-                // Uang masuk ke akun
+            // Flow berdasarkan tipe
+            if ($pending->type === 'transfer') {
+                // Transfer selesai: Cash berkurang (Expense)
+                Expense::create([
+                    'account_id' => $data['completed_account_id'],
+                    'amount' => $pending->amount,
+                    'category' => 'Cash Keluar',
+                    'description' => "Cash keluar untuk {$pending->description}",
+                    'date' => $completedDate,
+                ]);
+            } else {
+                // EDC/QRIS selesai: BCA bertambah (Income)
                 Income::create([
                     'account_id' => $data['completed_account_id'],
                     'amount' => $pending->amount,
                     'category' => 'Pending ' . strtoupper($pending->type),
-                    'description' => "Uang masuk dari {$pending->description}",
-                    'date' => $completedDate,
-                ]);
-            } else {
-                // Cash keluar dari akun
-                Expense::create([
-                    'account_id' => $data['completed_account_id'],
-                    'amount' => $pending->amount,
-                    'category' => 'Pending ' . strtoupper($pending->type),
-                    'description' => "Cash keluar untuk {$pending->description}",
+                    'description' => "BCA terima dari {$pending->description}",
                     'date' => $completedDate,
                 ]);
             }

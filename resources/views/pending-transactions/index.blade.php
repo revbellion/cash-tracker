@@ -100,17 +100,38 @@
                         <td><span class="badge bg-info">{{ $pending->type_label }}</span></td>
                         <td>{{ $pending->description }}</td>
                         <td class="text-end fw-semibold">{{ rp($pending->amount) }}</td>
-                        <td>{!! $pending->status_badge !!}</td>
+                        <td>
+                            {!! $pending->status_badge !!}
+                            @if($pending->status === 'pending')
+                                @if($pending->type === 'transfer')
+                                    <span class="badge bg-success bg-opacity-10 text-success" style="font-size:0.65rem;">BCA ✓</span>
+                                @else
+                                    <span class="badge bg-danger bg-opacity-10 text-danger" style="font-size:0.65rem;">Cash ✓</span>
+                                @endif
+                            @endif
+                        </td>
                         <td>{{ $pending->completedAccount?->name ?? '-' }}</td>
                         <td class="pe-3">
                             @if($pending->status === 'pending')
-                            <button type="button" class="btn btn-modern btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalComplete"
-                                data-id="{{ $pending->id }}"
-                                data-description="{{ $pending->description }}"
-                                data-amount="{{ $pending->amount }}"
-                                data-type="{{ $pending->type }}">
-                                <i class="fas fa-check me-1"></i>Selesai
-                            </button>
+                                @if($pending->type === 'transfer')
+                                <button type="button" class="btn btn-modern btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalComplete"
+                                    data-id="{{ $pending->id }}"
+                                    data-description="{{ $pending->description }}"
+                                    data-amount="{{ $pending->amount }}"
+                                    data-type="{{ $pending->type }}"
+                                    data-action="keluar">
+                                    <i class="fas fa-arrow-up me-1"></i>Cash Keluar
+                                </button>
+                                @else
+                                <button type="button" class="btn btn-modern btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalComplete"
+                                    data-id="{{ $pending->id }}"
+                                    data-description="{{ $pending->description }}"
+                                    data-amount="{{ $pending->amount }}"
+                                    data-type="{{ $pending->type }}"
+                                    data-action="masuk">
+                                    <i class="fas fa-arrow-down me-1"></i>Uang Masuk
+                                </button>
+                                @endif
                             @endif
                             <span class="text-success small me-2">
                                 @if($pending->completed_date) <i class="fas fa-check-circle"></i> {{ tgl($pending->completed_date) }} @endif
@@ -201,37 +222,23 @@
     <div class="modal-dialog">
         <form autocomplete="off" method="POST" action="" class="modal-content" id="formComplete">
             @csrf
+            <input type="hidden" name="completed_type" id="completed-type">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fas fa-check-circle me-2"></i>Selesaikan Transaksi</h5>
+                <h5 class="modal-title fw-bold"><i class="fas fa-check-circle me-2"></i><span id="modal-title">Selesaikan Transaksi</span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" name="completed_type" id="completed-type">
                 <div class="mb-3">
                     <label class="form-label">Transaksi</label>
                     <p class="fw-semibold mb-0" id="complete-description"></p>
                     <p class="text-muted" style="font-size:0.85rem;">Nominal: <span id="complete-amount" class="fw-bold"></span></p>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Tindakan <span class="text-danger">*</span></label>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-modern btn-success flex-fill btn-tindakan" id="btn-masuk" onclick="setType('masuk')">
-                            <i class="fas fa-arrow-down me-1"></i>Uang Masuk
-                        </button>
-                        <button type="button" class="btn btn-modern btn-danger flex-fill btn-tindakan" id="btn-keluar" onclick="setType('keluar')">
-                            <i class="fas fa-arrow-up me-1"></i>Cash Keluar
-                        </button>
-                    </div>
-                    <div id="tindakan-info" class="mt-2 text-center" style="font-size:0.8rem; color: var(--text-muted);">
-                        <i class="fas fa-info-circle me-1"></i>Pilih salah satu tindakan di atas
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Akun Tujuan</label>
+                <div class="mb-3" id="akun-tujuan-section">
+                    <label class="form-label">Akun Tujuan <span class="text-danger">*</span></label>
                     <select name="completed_account_id" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accounts as $account)
-                        <option value="{{ $account->id }}">{{ $account->name }} ({{ ucfirst($account->type) }})</option>
+                        <option value="{{ $account->id }}" data-type="{{ $account->type }}">{{ $account->name }} ({{ ucfirst($account->type) }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -242,7 +249,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-modern btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-modern btn-primary"><i class="fas fa-check me-1"></i>Selesaikan</button>
+                <button type="submit" class="btn btn-modern btn-primary" id="btn-submit"><i class="fas fa-check me-1"></i>Selesaikan</button>
             </div>
         </form>
     </div>
@@ -256,39 +263,33 @@ $('#modalComplete').on('show.bs.modal', function (event) {
     var description = button.data('description');
     var amount = button.data('amount');
     var type = button.data('type');
+    var action = button.data('action');
 
     $('#formComplete').attr('action', '{{ url("pending") }}/' + id + '/complete');
     $('#complete-description').text(description);
     $('#complete-amount').text('Rp ' + amount.toLocaleString('id-ID'));
-    $('#completed-type').val('');
+    $('#completed-type').val(action);
 
-    // Reset button states
-    $('#btn-masuk').removeClass('active');
-    $('#btn-keluar').removeClass('active');
-    $('#tindakan-info').html('<i class="fas fa-info-circle me-1"></i>Pilih salah satu tindakan di atas').css('color', 'var(--text-muted)');
-});
-
-function setType(type) {
-    $('#completed-type').val(type);
-    if (type === 'masuk') {
-        $('#btn-masuk').addClass('active');
-        $('#btn-keluar').removeClass('active');
-        $('#tindakan-info').html('<i class="fas fa-check-circle me-1"></i>Uang akan masuk ke akun tujuan').css('color', '#10b981');
+    // Set title dan info berdasarkan tipe
+    if (type === 'transfer') {
+        $('#modal-title').text('Cash Keluar');
+        $('#btn-submit').html('<i class="fas fa-arrow-up me-1"></i>Catat Cash Keluar');
     } else {
-        $('#btn-keluar').addClass('active');
-        $('#btn-masuk').removeClass('active');
-        $('#tindakan-info').html('<i class="fas fa-check-circle me-1"></i>Cash akan keluar dari kasir').css('color', '#ef4444');
+        $('#modal-title').text('Uang Masuk');
+        $('#btn-submit').html('<i class="fas fa-arrow-down me-1"></i>Catat Uang Masuk');
     }
-}
 
-// Validasi sebelum submit
-$('#formComplete').on('submit', function(e) {
-    if (!$('#completed-type').val()) {
-        e.preventDefault();
-        $('#tindakan-info').html('<i class="fas fa-exclamation-circle me-1"></i><b style="color:#ef4444;">Pilih tindakan terlebih dahulu!</b>');
-        return false;
+    // Filter akun berdasarkan tipe
+    var select = $('select[name="completed_account_id"]');
+    select.find('option').show();
+    if (type === 'transfer') {
+        // Transfer: pilih akun cash
+        select.find('option[data-type="cash"]').prop('selected', true);
+    } else {
+        // EDC/QRIS: pilih akun bank
+        select.find('option[data-type="bank"]').prop('selected', true);
     }
-    return true;
+    select.trigger('change');
 });
 </script>
 @endpush
