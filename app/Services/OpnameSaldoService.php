@@ -97,15 +97,20 @@ class OpnameSaldoService
                 $totalDifference += $difference;
             }
 
-            // Jika total difference positif, buat Income (omzet)
-            if ($totalDifference > 0) {
+            // Buat Income untuk semua selisih (positif atau negatif)
+            if ($totalDifference != 0) {
                 $cashAccountId = $this->getCashAccountId();
                 if ($cashAccountId) {
+                    $absDifference = abs($totalDifference);
+                    $description = $totalDifference > 0 
+                        ? 'Omzet opname saldo ' . Carbon::parse($date)->format('d/m/Y')
+                        : 'Selisih opname saldo ' . Carbon::parse($date)->format('d/m/Y');
+
                     Income::create([
                         'account_id' => $cashAccountId,
-                        'amount' => $totalDifference,
+                        'amount' => $absDifference,
                         'category' => 'Opname Saldo',
-                        'description' => 'Omzet opname saldo ' . Carbon::parse($date)->format('d/m/Y'),
+                        'description' => $description,
                         'date' => $date . ' ' . Carbon::now()->format('H:i:s'),
                     ]);
                 }
