@@ -16,6 +16,7 @@ class Receivable extends Model
         'date',
         'due_date',
         'status',
+        'type',
     ];
 
     protected function casts(): array
