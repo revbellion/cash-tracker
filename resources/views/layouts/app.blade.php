@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     @stack('styles')
 </head>
@@ -247,44 +247,36 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ asset('js/app.js') }}"></script>
 <script>
-const notyf = new Notyf({
-    duration: 3000,
-    position: { x: 'right', y: 'top' },
-    dismissible: true,
-    ripple: true,
-    types: [
-        {
-            type: 'success',
-            background: '#10b981',
-            icon: { className: 'fas fa-check-circle', tagName: 'i' }
-        },
-        {
-            type: 'error',
-            background: '#ef4444',
-            icon: { className: 'fas fa-times-circle', tagName: 'i' }
-        },
-        {
-            type: 'warning',
-            background: '#f59e0b',
-            icon: { className: 'fas fa-exclamation-triangle', tagName: 'i' }
-        },
-        {
-            type: 'info',
-            background: '#3b82f6',
-            icon: { className: 'fas fa-info-circle', tagName: 'i' }
+// Fungsi notifikasi
+function showToast(message, type = 'success') {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
         }
-    ]
-});
+    });
 
+    Toast.fire({
+        icon: type,
+        title: message
+    });
+}
+
+// Tampilkan notifikasi dari session
 @if(session('success'))
-    notyf.success('{{ session('success') }}');
+    showToast('{{ session('success') }}', 'success');
 @endif
 
 @if(session('error'))
-    notyf.error('{{ session('error') }}');
+    showToast('{{ session('error') }}', 'error');
 @endif
 </script>
 @stack('scripts')
