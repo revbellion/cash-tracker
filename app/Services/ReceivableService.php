@@ -18,24 +18,9 @@ class ReceivableService
         $data['date'] = $parsedDate->format('Y-m-d') . ' ' . $now->format('H:i:s');
         $data['due_date'] = $parsedDate->copy()->addDays(3);
         $data['status'] = 'unpaid';
-        $data['type'] = $data['type'] ?? 'in'; // default: piutang masuk
 
         return DB::transaction(function () use ($data) {
             $receivable = Receivable::create($data);
-
-            // Jika tipe 'out' (piutang keluar), buat expense dari cash
-            if ($data['type'] === 'out') {
-                $cashAccountId = $this->resolveCashAccountId();
-                Expense::create([
-                    'account_id' => $cashAccountId,
-                    'amount' => $receivable->amount,
-                    'category' => 'Piutang Keluar',
-                    'description' => "Piutang keluar a/n {$receivable->name}",
-                    'date' => $receivable->date,
-                    'receivable_id' => $receivable->id,
-                ]);
-            }
-
             return $receivable;
         });
     }
@@ -64,17 +49,10 @@ class ReceivableService
         });
     }
 
-    public function pay(int $receivableId, array $data): ?ReceivablePayment
+    public function pay(int $receivableId, array $data): ReceivablePayment
     {
         return DB::transaction(function () use ($receivableId, $data) {
             $receivable = Receivable::findOrFail($receivableId);
-
-            // Jika tipe 'out' (piutang keluar), cukup tandai lunas
-            // Karena cash sudah dikurangi saat buat piutang
-            if ($receivable->type === 'out') {
-                $receivable->update(['status' => 'paid']);
-                return null;
-            }
 
             $now = Carbon::now();
             $paymentDate = !empty($data['date'])
@@ -109,12 +87,6 @@ class ReceivableService
         return DB::transaction(function () use ($id) {
             $receivable = Receivable::findOrFail($id);
             $receivable->receivablePayments()->delete();
-
-            // Jika tipe 'out', hapus expense terkait
-            if ($receivable->type === 'out') {
-                Expense::where('receivable_id', $receivable->id)->delete();
-            }
-
             return $receivable->delete();
         });
     }
