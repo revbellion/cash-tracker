@@ -252,21 +252,12 @@
 <script>
 // Fungsi notifikasi
 function showToast(message, type = 'success') {
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'center',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
-
-    Toast.fire({
+    Swal.fire({
+        title: type === 'success' ? 'Berhasil!' : type === 'error' ? 'Gagal!' : 'Perhatian!',
+        text: message,
         icon: type,
-        title: message
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'OK'
     });
 }
 
