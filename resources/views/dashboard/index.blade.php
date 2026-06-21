@@ -211,17 +211,25 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @php $totalSaldo = 0; @endphp
                         @foreach($accounts as $account)
-                        <tr>
-                            <td class="ps-3">{{ $account->name }}</td>
-                            <td class="text-end pe-3 fw-semibold {{ in_array($account->type, ['ewallet','ppob']) && $account->balance < 250000 ? 'text-danger' : '' }}">
-                                @if(in_array($account->type, ['ewallet','ppob']) && $account->balance < 250000)
-                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                @endif
-                                {{ rp($account->balance) }}
-                            </td>
-                        </tr>
+                            @if(!in_array($account->name, ['Cash', 'BCA']))
+                                @php $totalSaldo += $account->balance; @endphp
+                                <tr>
+                                    <td class="ps-3">{{ $account->name }}</td>
+                                    <td class="text-end pe-3 fw-semibold {{ in_array($account->type, ['ewallet','ppob']) && $account->balance < 250000 ? 'text-danger' : '' }}">
+                                        @if(in_array($account->type, ['ewallet','ppob']) && $account->balance < 250000)
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        @endif
+                                        {{ rp($account->balance) }}
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
+                        <tr style="background:var(--border-subtle); font-weight:700;">
+                            <td class="ps-3">Total Saldo Digital</td>
+                            <td class="text-end pe-3 fw-bold">{{ rp($totalSaldo) }}</td>
+                        </tr>
                     </tbody>
                 </table>
                 </div>
