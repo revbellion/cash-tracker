@@ -532,25 +532,27 @@ function createAdjustment(type) {
         return;
     }
 
-    if (!confirm('Buat ' + (type === 'income' ? 'pendapatan' : 'pengeluaran') +
-        ' penyesuaian sebesar Rp ' + diff.toLocaleString('id-ID') + '?')) return;
+    confirmAction('Buat ' + (type === 'income' ? 'pendapatan' : 'pengeluaran') +
+        ' penyesuaian sebesar Rp ' + diff.toLocaleString('id-ID') + '?').then(ok => {
+        if (!ok) return;
 
-    const accountId = document.getElementById('account-select').value;
+        const accountId = document.getElementById('account-select').value;
 
-    fetch('{{ url("cash-counter/sessions") }}/' + currentSessionId + '/adjust', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        body: JSON.stringify({ type: type, amount: diff, account_id: accountId })
-    })
-    .then(r => {
-        if (!r.ok) { return r.json().then(e => { throw new Error(e.message || 'Gagal membuat penyesuaian'); }); }
-        return r.json();
-    })
-    .then(res => {
-        showToast(res.message || 'Penyesuaian berhasil dibuat');
-        document.getElementById('adjust-panel').classList.add('d-none');
-    })
-    .catch(e => showToast(e.message));
+        fetch('{{ url("cash-counter/sessions") }}/' + currentSessionId + '/adjust', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: JSON.stringify({ type: type, amount: diff, account_id: accountId })
+        })
+        .then(r => {
+            if (!r.ok) { return r.json().then(e => { throw new Error(e.message || 'Gagal membuat penyesuaian'); }); }
+            return r.json();
+        })
+        .then(res => {
+            showToast(res.message || 'Penyesuaian berhasil dibuat');
+            document.getElementById('adjust-panel').classList.add('d-none');
+        })
+        .catch(e => showToast(e.message));
+    });
 }
 
 function updateChart(grandTotal) {
@@ -599,16 +601,18 @@ function updateChart(grandTotal) {
 }
 
 function resetCalculator() {
-    if (!confirm('Reset semua input?')) return;
-    DENOM_KEYS.forEach(key => {
-        document.getElementById('count-' + key).value = '';
+    confirmAction('Reset semua input?').then(ok => {
+        if (!ok) return;
+        DENOM_KEYS.forEach(key => {
+            document.getElementById('count-' + key).value = '';
+        });
+        document.getElementById('target-amount').value = '';
+        document.getElementById('target-result-panel').classList.add('d-none');
+        document.getElementById('adjust-panel').classList.add('d-none');
+        currentSessionId = null;
+        updateTotal();
+        showToast('Semua input direset');
     });
-    document.getElementById('target-amount').value = '';
-    document.getElementById('target-result-panel').classList.add('d-none');
-    document.getElementById('adjust-panel').classList.add('d-none');
-    currentSessionId = null;
-    updateTotal();
-    showToast('Semua input direset');
 }
 
 function copySummary() {
@@ -740,28 +744,32 @@ function loadSession(id) {
 }
 
 function deleteSession(id) {
-    if (!confirm('Hapus sesi ini?')) return;
-    fetch(`{{ url("cash-counter/sessions") }}/${id}`, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-    })
-    .then(r => { if (!r.ok) throw new Error('Gagal hapus sesi'); return r.json(); })
-    .then(() => { showToast('Sesi dihapus'); loadHistory(); });
+    confirmDelete('Hapus sesi ini?').then(ok => {
+        if (!ok) return;
+        fetch(`{{ url("cash-counter/sessions") }}/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+        })
+        .then(r => { if (!r.ok) throw new Error('Gagal hapus sesi'); return r.json(); })
+        .then(() => { showToast('Sesi dihapus'); loadHistory(); });
+    });
 }
 
 function clearHistory() {
-    if (!confirm('Hapus semua sesi?')) return;
-    fetch('{{ route("cash-counter.history") }}')
-    .then(r => { if (!r.ok) throw new Error('Gagal muat riwayat'); return r.json(); })
-    .then(sessions => {
-        let done = 0;
-        sessions.forEach(s => {
-            fetch(`{{ url("cash-counter/sessions") }}/${s.id}`, {
-                method: 'DELETE',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-            }).then(() => { done++; if (done === sessions.length) { showToast('Semua sesi dihapus'); loadHistory(); }});
+    confirmDelete('Hapus semua sesi?').then(ok => {
+        if (!ok) return;
+        fetch('{{ route("cash-counter.history") }}')
+        .then(r => { if (!r.ok) throw new Error('Gagal muat riwayat'); return r.json(); })
+        .then(sessions => {
+            let done = 0;
+            sessions.forEach(s => {
+                fetch(`{{ url("cash-counter/sessions") }}/${s.id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                }).then(() => { done++; if (done === sessions.length) { showToast('Semua sesi dihapus'); loadHistory(); }});
+            });
+            if (sessions.length === 0) showToast('Tidak ada sesi');
         });
-        if (sessions.length === 0) showToast('Tidak ada sesi');
     });
 }
 

@@ -99,7 +99,7 @@
                                 <td class="pe-3">
                                     @if(Auth::user()->isAdmin())
                                     <form autocomplete="off" action="{{ route('stock.in.destroy', $trx->id) }}" method="POST" class="d-inline"
-                                        onsubmit="return confirm('Yakin hapus stok masuk {{ $trx->product->name ?? '' }} ({{ $trx->qty }} {{ $trx->product->unit ?? '' }})?')">
+                                        onsubmit="event.preventDefault(); confirmDelete('Yakin hapus stok masuk {{ $trx->product->name ?? '' }} ({{ $trx->qty }} {{ $trx->product->unit ?? '' }})?').then(ok => ok && this.submit());">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-modern btn-danger btn-sm py-0 px-2" style="font-size:0.7rem;">

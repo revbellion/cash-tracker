@@ -125,7 +125,7 @@
                             <form autocomplete="off" action="{{ route('pending.destroy', $pending->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="return confirm('Hapus transaksi pending ini?')">
+                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus transaksi pending ini?').then(ok => ok && this.form.submit());">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>

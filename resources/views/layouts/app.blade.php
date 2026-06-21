@@ -261,6 +261,42 @@ function showToast(message, type = 'success') {
     });
 }
 
+// Fungsi konfirmasi hapus
+function confirmDelete(message = 'Apakah Anda yakin ingin menghapus?') {
+    return new Promise((resolve) => {
+        Swal.fire({
+            title: message,
+            text: 'Data yang dihapus tidak dapat dikembalikan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            resolve(result.isConfirmed);
+        });
+    });
+}
+
+// Fungsi konfirmasi umum
+function confirmAction(title, text = '') {
+    return new Promise((resolve) => {
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            resolve(result.isConfirmed);
+        });
+    });
+}
+
 // Tampilkan notifikasi dari session
 @if(session('success'))
     showToast('{{ session('success') }}', 'success');

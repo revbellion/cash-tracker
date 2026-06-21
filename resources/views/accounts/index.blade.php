@@ -55,7 +55,7 @@
                             <form autocomplete="off" action="{{ route('accounts.destroy', $account->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="return confirm('Nonaktifkan akun {{ $account->name }}?')">
+                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Nonaktifkan akun {{ $account->name }}?').then(ok => ok && this.form.submit());">
                                     <i class="fas fa-ban"></i>
                                 </button>
                             </form>

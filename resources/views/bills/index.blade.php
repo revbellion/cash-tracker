@@ -75,7 +75,7 @@ $overdue = !$bill->is_paid && (int)$bill->due_day < (int)now()->format('d');
                 <form autocomplete="off" action="{{ route('bills.destroy', $bill->id) }}" method="POST" class="d-inline">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="return confirm('Hapus tagihan {{ $bill->name }} beserta riwayat pembayarannya?')">
+                    <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus tagihan {{ $bill->name }} beserta riwayat pembayarannya?').then(ok => ok && this.form.submit());">
                         <i class="fas fa-trash"></i>
                     </button>
                 </form>

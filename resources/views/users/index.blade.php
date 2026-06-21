@@ -53,7 +53,7 @@
                                 <i class="fas fa-edit"></i>
                             </a>
                             @if(!$user->isAdmin())
-                                <form method="POST" action="{{ route('users.destroy', $user) }}" class="d-inline" onsubmit="return confirm('Hapus user ini?')">
+                                <form method="POST" action="{{ route('users.destroy', $user) }}" class="d-inline" onsubmit="event.preventDefault(); confirmDelete('Hapus user ini?').then(ok => ok && this.form.submit());">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-sm btn-modern btn-danger"><i class="fas fa-trash"></i></button>
                                 </form>

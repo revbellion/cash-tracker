@@ -35,7 +35,7 @@
                             <form autocomplete="off" action="{{ route('product-categories.destroy', $category->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="return confirm('Hapus kategori {{ $category->name }}?')">
+                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus kategori {{ $category->name }}?').then(ok => ok && this.form.submit());">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>

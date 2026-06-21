@@ -151,7 +151,7 @@
                                     </a>
                                     @if(Auth::user()->isAdmin())
                                     <form autocomplete="off" action="{{ route('stock.sales.destroy', $receipt->receipt_id) }}" method="POST" class="d-inline"
-                                        onsubmit="return confirm('Yakin hapus penjualan {{ $receipt->receipt_id }}?')">
+                                        onsubmit="event.preventDefault(); confirmDelete('Yakin hapus penjualan {{ $receipt->receipt_id }}?').then(ok => ok && this.submit());">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-modern btn-danger btn-sm py-0 px-2" style="font-size:0.7rem;">

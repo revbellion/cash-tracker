@@ -60,7 +60,7 @@
                             <form autocomplete="off" action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="return confirm('Nonaktifkan barang {{ $product->name }}?')">
+                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Nonaktifkan barang {{ $product->name }}?').then(ok => ok && this.form.submit());">
                                     <i class="fas fa-ban"></i>
                                 </button>
                             </form>

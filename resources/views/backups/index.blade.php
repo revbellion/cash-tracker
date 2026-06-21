@@ -16,7 +16,7 @@
             <div class="card-body">
                 <p class="text-muted mb-3">Download file SQL seluruh database. Simpan file ini di tempat aman.</p>
                 <a href="{{ route('backups.download') }}" class="btn btn-modern btn-primary"
-                   onclick="return confirm('Download backup database sekarang?')">
+                   onclick="event.preventDefault(); confirmDelete('Download backup database sekarang?').then(ok => ok && (window.location.href = this.href));">
                     <i class="fas fa-download me-1"></i>Download Backup
                 </a>
             </div>
@@ -41,7 +41,7 @@
                         <input type="file" name="backup_file" class="form-control" accept=".sql,.txt" required>
                     </div>
                     <button type="submit" class="btn btn-modern btn-warning"
-                            onclick="return confirm('YAKIN ingin restore database? Semua data saat ini akan hilang!')">
+                            onclick="event.preventDefault(); confirmDelete('YAKIN ingin restore database? Semua data saat ini akan hilang!').then(ok => ok && this.form.submit());">
                         <i class="fas fa-upload me-1"></i>Restore Sekarang
                     </button>
                 </form>
@@ -66,7 +66,7 @@
                         <input type="text" name="confirm" class="form-control" style="max-width:200px;" required>
                     </div>
                     <button type="submit" class="btn btn-modern btn-danger"
-                            onclick="return confirm('YAKIN ingin reset SEMUA data transaksi? Aksi ini tidak bisa dibatalkan!')">
+                            onclick="event.preventDefault(); confirmDelete('YAKIN ingin reset SEMUA data transaksi? Aksi ini tidak bisa dibatalkan!').then(ok => ok && this.form.submit());">
                         <i class="fas fa-trash-alt me-1"></i>Reset Semua Data
                     </button>
                 </form>

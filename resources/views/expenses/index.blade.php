@@ -75,7 +75,7 @@
                             <form autocomplete="off" action="{{ route('expenses.destroy', $expense->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="return confirm('Hapus pengeluaran ini?')">
+                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus pengeluaran ini?').then(ok => ok && this.form.submit());">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
