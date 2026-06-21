@@ -387,7 +387,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Dari Akun</label>
-                    <select name="from_account_id" class="form-select" required>
+                    <select name="from_account_id" id="dash-mutation-from" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accountList as $account)
                         <option value="{{ $account->id }}">{{ $account->name }}</option>
@@ -396,7 +396,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Ke Akun</label>
-                    <select name="to_account_id" class="form-select" required>
+                    <select name="to_account_id" id="dash-mutation-to" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accountList as $account)
                         <option value="{{ $account->id }}">{{ $account->name }}</option>
@@ -679,6 +679,42 @@ document.addEventListener('DOMContentLoaded', function () {
         var price = parseInt(document.getElementById('stok-price-dash').value) || 0;
         document.getElementById('stok-total-dash').value = 'Rp ' + (qty * price).toLocaleString('id-ID');
     };
+
+    // Fungsi dropdown exclusion untuk modalTambahMutasi
+    var dashFrom = document.getElementById('dash-mutation-from');
+    var dashTo = document.getElementById('dash-mutation-to');
+    
+    if (dashFrom) {
+        dashFrom.addEventListener('change', function() {
+            var selected = this.value;
+            dashTo.querySelectorAll('option').forEach(function(opt) {
+                if (opt.value === selected || opt.value === '') {
+                    opt.style.display = 'none';
+                } else {
+                    opt.style.display = '';
+                }
+            });
+            if (dashTo.value === selected) {
+                dashTo.value = '';
+            }
+        });
+    }
+    
+    if (dashTo) {
+        dashTo.addEventListener('change', function() {
+            var selected = this.value;
+            dashFrom.querySelectorAll('option').forEach(function(opt) {
+                if (opt.value === selected || opt.value === '') {
+                    opt.style.display = 'none';
+                } else {
+                    opt.style.display = '';
+                }
+            });
+            if (dashFrom.value === selected) {
+                dashFrom.value = '';
+            }
+        });
+    }
 });
 </script>
 @endpush
