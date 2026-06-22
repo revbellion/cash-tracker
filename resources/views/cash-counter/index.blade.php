@@ -174,7 +174,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-modern">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold" style="font-size:1rem;">Simpan Sesi Perhitungan</h5>
+                <h5 class="modal-title fw-bold" style="font-size:1rem;">Simpan Sesi Cash Counter</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
