@@ -54,7 +54,7 @@
                 @endif
                 @if(Auth::user()->hasPermission(config('permissions.EXPENSES')))
                 <a class="nav-link sub-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}" href="{{ route('expenses.index') }}">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fas fa-minus-circle"></i>
                     <span class="nav-label">Pengeluaran</span>
                 </a>
                 @endif
@@ -66,7 +66,7 @@
                 @endif
                 @if(Auth::user()->hasPermission(config('permissions.RECEIVABLES')))
                 <a class="nav-link sub-link {{ request()->routeIs('receivables.*') ? 'active' : '' }}" href="{{ route('receivables.index') }}">
-                    <i class="fas fa-book"></i>
+                    <i class="fas fa-hand-holding-usd"></i>
                     <span class="nav-label">Piutang</span>
                     @if(isset($unpaidPiutangCount) && $unpaidPiutangCount > 0)
                         <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;padding:0.2em 0.5em;">{{ $unpaidPiutangCount }}</span>
@@ -139,7 +139,7 @@
                 @endif
                 @if(Auth::user()->hasPermission(config('permissions.POS')))
                 <a class="nav-link sub-link {{ request()->routeIs('stock.sales') ? 'active' : '' }}" href="{{ route('stock.sales') }}">
-                    <i class="fas fa-arrow-up"></i>
+                    <i class="fas fa-shopping-cart"></i>
                     <span class="nav-label">Penjualan</span>
                 </a>
                 @endif

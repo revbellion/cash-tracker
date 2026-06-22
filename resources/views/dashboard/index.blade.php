@@ -250,7 +250,7 @@
     <div class="col-lg-4">
         <div class="card card-modern shadow-sm">
             <div class="card-header d-flex align-items-center">
-                <i class="fas fa-chart-line me-2" style="color:#f59e0b;"></i>
+                <i class="fas fa-chart-area me-2" style="color:#f59e0b;"></i>
                 <span class="fw-semibold">Profit 7 Hari</span>
             </div>
             <div class="card-body p-0">
