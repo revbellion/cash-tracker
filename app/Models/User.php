@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'username', 'email', 'password', 'permissions'])]
+#[Fillable(['name', 'username', 'email', 'password', 'permissions', 'is_admin'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -22,12 +22,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'permissions' => 'array',
+            'is_admin' => 'boolean',
         ];
     }
 
     public function isAdmin(): bool
     {
-        return empty($this->permissions);
+        return $this->is_admin;
     }
 
     public function hasPermission(string $key): bool

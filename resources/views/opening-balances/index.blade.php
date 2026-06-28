@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Settings')
+@section('title', 'Modal Awal')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

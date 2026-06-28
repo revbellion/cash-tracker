@@ -16,13 +16,13 @@
 
 <form autocomplete="off" method="GET" action="{{ route('expenses.index') }}" class="row g-2 mb-4 filter-form">
     <div class="col-auto">
-        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm" style="width:auto;">
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm" style="width:auto;" onchange="this.form.submit()">
     </div>
     <div class="col-auto">
-        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm" style="width:auto;">
+        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm" style="width:auto;" onchange="this.form.submit()">
     </div>
     <div class="col-auto">
-        <select name="category" class="form-select form-select-sm" style="width:auto;">
+        <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
             <option value="">Semua Kategori</option>
             @foreach($categories as $cat)
             <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>{{ $cat }}</option>
@@ -30,13 +30,47 @@
         </select>
     </div>
     <div class="col-auto">
-        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari..." style="width:150px;">
+        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari..." style="width:150px;" oninput=" clearTimeout(this._timer); this._timer=setTimeout(()=>this.form.submit(),500)">
     </div>
     <div class="col-auto">
-        <button type="submit" class="btn btn-modern btn-primary btn-sm"><i class="fas fa-search me-1"></i>Cari</button>
         <a href="{{ route('expenses.index') }}" class="btn btn-modern btn-secondary btn-sm"><i class="fas fa-times me-1"></i>Reset</a>
     </div>
 </form>
+
+{{-- Tipe filter tabs --}}
+<ul class="nav nav-tabs border-0 mb-4">
+    <li class="nav-item">
+        <a class="nav-link border-0 fw-semibold {{ !$typeFilter ? 'active' : '' }}"
+           href="{{ route('expenses.index', request()->except('type')) }}">Semua</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link border-0 fw-semibold {{ $typeFilter === 'real' ? 'active' : '' }}"
+           href="{{ route('expenses.index', array_merge(request()->except('type'), ['type' => 'real'])) }}">
+           <i class="fas fa-check-circle text-success me-1"></i>Biaya Real</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link border-0 fw-semibold {{ $typeFilter === 'cash_movement' ? 'active' : '' }}"
+           href="{{ route('expenses.index', array_merge(request()->except('type'), ['type' => 'cash_movement'])) }}">
+           <i class="fas fa-exchange-alt text-warning me-1"></i>Mutasi</a>
+    </li>
+</ul>
+
+<div class="bulk-action-bar mb-3 d-none" id="bulkActionBar">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:rgba(var(--theme-primary-rgb),0.08);border:1px solid rgba(var(--theme-primary-rgb),0.2);">
+        <span class="fw-semibold" style="font-size:0.85rem;"><span id="bulkCount">0</span> dipilih</span>
+        <span class="fw-bold" style="font-size:0.85rem;color:var(--theme-primary);" id="bulkTotal"></span>
+        <form autocomplete="off" id="bulkDeleteForm" method="POST" action="{{ route('expenses.bulk-delete') }}" style="display:inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus data yang dipilih?').then(ok => ok && this.closest('form').submit());">
+                <i class="fas fa-trash me-1"></i>Hapus
+            </button>
+        </form>
+        <button type="button" class="btn btn-modern btn-secondary btn-sm" onclick="clearBulkSelection()">
+            <i class="fas fa-times me-1"></i>Batal
+        </button>
+    </div>
+</div>
 
 <div class="card card-modern shadow-sm">
     <div class="card-body p-0">
@@ -44,18 +78,24 @@
             <table class="table table-modern mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-3">Tanggal</th>
-                        <th>Akun</th>
-                        <th>Kategori</th>
-                        <th>Nominal</th>
-                        <th>Keterangan</th>
+                        <th class="ps-3" style="width:40px;"><input type="checkbox" class="form-check-input bulk-select-all"></th>
+                        <th class="sortable" data-sort="date">Tanggal</th>
+                        <th class="sortable" data-sort="string">Akun</th>
+                        <th class="sortable" data-sort="string">Kategori</th>
+                        <th class="sortable" data-sort="number">Nominal</th>
+                        <th class="sortable" data-sort="string">Keterangan</th>
                         <th class="pe-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($expenses as $expense)
                     <tr>
-                        <td class="ps-3">{{ tgl($expense->date) }}</td>
+                        <td class="ps-3">
+                            @if($expense->category !== 'Piutang' && $expense->category !== 'Cash Keluar' && $expense->category !== 'Biaya MDR' && $expense->category !== 'Stok Opname Minus' && $expense->category !== 'Penyesuaian Kas' && !str_starts_with($expense->category, 'Pending') && !$expense->stock_transaction_id)
+                            <input type="checkbox" class="form-check-input bulk-select-item" value="{{ $expense->id }}" data-amount="{{ $expense->amount }}">
+                            @endif
+                        </td>
+                        <td>{{ tgl($expense->date) }}</td>
                         <td>{{ $expense->account->name ?? '-' }}</td>
                         <td>
                             <span class="badge badge-status" style="background:#eff6ff;color:var(--theme-primary);">{{ $expense->category ?? '-' }}</span>
@@ -63,6 +103,7 @@
                         <td class="fw-semibold">{{ rp($expense->amount) }}</td>
                         <td>{{ $expense->description ?? '-' }}</td>
                         <td class="pe-3">
+                            @if($expense->category !== 'Piutang' && $expense->category !== 'Cash Keluar' && $expense->category !== 'Biaya MDR' && $expense->category !== 'Stok Opname Minus' && $expense->category !== 'Penyesuaian Kas' && !str_starts_with($expense->category, 'Pending') && !$expense->stock_transaction_id)
                             <button type="button" class="btn btn-modern btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditPengeluaran"
                                 data-id="{{ $expense->id }}"
                                 data-date="{{ $expense->date->format('Y-m-d') }}"
@@ -79,11 +120,14 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                            @else
+                            <span class="badge bg-secondary" style="font-size:0.65rem;">{{ $expense->category }}</span>
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">Belum ada data pengeluaran</td>
+                        <td colspan="7" class="text-center text-muted py-4">Belum ada data pengeluaran</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -206,6 +250,56 @@
 
 @push('scripts')
 <script>
+// Bulk selection
+document.querySelector('.bulk-select-all')?.addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateBulkBar();
+});
+
+document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+function updateBulkBar() {
+    var checked = document.querySelectorAll('.bulk-select-item:checked');
+    var count = checked.length;
+    var bar = document.getElementById('bulkActionBar');
+    if (!bar) return;
+    
+    if (count > 0) {
+        bar.classList.remove('d-none');
+        document.getElementById('bulkCount').textContent = count;
+        
+        var total = 0;
+        checked.forEach(function(cb) { total += parseInt(cb.dataset.amount) || 0; });
+        document.getElementById('bulkTotal').textContent = total > 0 ? 'Total: Rp ' + total.toLocaleString('id-ID') : '';
+        
+        var ids = [];
+        checked.forEach(function(cb) { ids.push(cb.value); });
+        var form = document.getElementById('bulkDeleteForm');
+        form.querySelectorAll('input[name="ids[]"]').forEach(function(el) { el.remove(); });
+        ids.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+    } else {
+        bar.classList.add('d-none');
+    }
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.bulk-select-item, .bulk-select-all').forEach(function(cb) {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+
 $('#modalEditPengeluaran').on('show.bs.modal', function (event) {
     var button = $(event.relatedTarget);
     var id = button.data('id');

@@ -19,7 +19,7 @@ class RecurringBill extends Model
     {
         return [
             'is_active' => 'boolean',
-            'amount' => 'decimal:2',
+            'amount' => 'integer',
         ];
     }
 

@@ -6,25 +6,10 @@
     <h4 class="fw-bold mb-0"><i class="fas fa-calculator me-2" style="color:#8b5cf6;"></i>Opname Saldo PPOB & E-Wallet</h4>
     <div class="d-flex gap-2">
         <form autocomplete="off" method="GET" action="{{ route('opname-saldo.index') }}" class="d-flex gap-2">
-            <input type="date" name="date" value="{{ $date }}" class="form-control form-control-sm" style="width:auto;">
-            <button type="submit" class="btn btn-modern btn-primary btn-sm"><i class="fas fa-sync me-1"></i>Refresh</button>
+            <input type="date" name="date" value="{{ $date }}" class="form-control form-control-sm" style="width:auto;" onchange="this.form.submit()">
         </form>
     </div>
 </div>
-
-@if(session('success'))
-<div class="alert alert-success alert-dismissible fade show alert-modern py-2 px-3 mb-4" role="alert">
-    <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
-    <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
-</div>
-@endif
-
-@if(session('error'))
-<div class="alert alert-danger alert-dismissible fade show alert-modern py-2 px-3 mb-4" role="alert">
-    <i class="fas fa-exclamation-circle me-1"></i> {{ session('error') }}
-    <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
-</div>
-@endif
 
 <form autocomplete="off" method="POST" action="{{ route('opname-saldo.store') }}" id="opnameForm">
     @csrf
@@ -121,6 +106,7 @@
                         <th class="text-end">Saldo Sistem</th>
                         <th class="text-end">Saldo Aktual</th>
                         <th class="text-end">Selisih</th>
+                        <th class="pe-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -132,6 +118,15 @@
                         <td class="text-end">{{ rp($item->closing_balance) }}</td>
                         <td class="text-end fw-semibold" style="color:{{ $item->difference >= 0 ? '#10b981' : '#ef4444' }}">
                             {{ $item->difference >= 0 ? '+' : '' }}{{ rp($item->difference) }}
+                        </td>
+                        <td class="pe-3">
+                            <form autocomplete="off" action="{{ route('opname-saldo.destroy', $item->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus riwayat opname ini?').then(ok => ok && this.form.submit());">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     @endforeach

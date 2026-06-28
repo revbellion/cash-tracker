@@ -20,6 +20,8 @@ class PendingTransaction extends Model
         'completed_date',
         'completed_type',
         'completed_account_id',
+        'income_id',
+        'expense_id',
     ];
 
     protected function casts(): array

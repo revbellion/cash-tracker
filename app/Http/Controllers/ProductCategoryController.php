@@ -42,15 +42,37 @@ class ProductCategoryController extends Controller
         }
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+        $deleted = 0;
+        foreach ($request->ids as $id) {
+            try {
+                $productCategory = ProductCategory::findOrFail($id);
+                if ($productCategory->products()->exists()) {
+                    $defaultCategory = ProductCategory::firstOrCreate(['name' => 'Lainnya']);
+                    $productCategory->products()->update(['category_id' => $defaultCategory->id]);
+                }
+                $productCategory->delete();
+                $deleted++;
+            } catch (\Exception $e) {
+                // skip
+            }
+        }
+        return redirect()->back()->with('success', "{$deleted} data berhasil dihapus.");
+    }
+
     public function destroy(ProductCategory $productCategory)
     {
-        if ($productCategory->products()->exists()) {
-            return redirect()->back()->with('error', 'Kategori tidak bisa dihapus karena masih memiliki barang.');
-        }
-
         try {
+            // Pindahkan produk ke kategori "Lainnya" jika ada
+            if ($productCategory->products()->exists()) {
+                $defaultCategory = ProductCategory::firstOrCreate(['name' => 'Lainnya']);
+                $productCategory->products()->update(['category_id' => $defaultCategory->id]);
+            }
+
             $productCategory->delete();
-            return redirect()->back()->with('success', 'Kategori berhasil dihapus.');
+            return redirect()->back()->with('success', 'Kategori berhasil dihapus. Produk dipindahkan ke "Lainnya".');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal menghapus kategori: ' . $e->getMessage());
         }

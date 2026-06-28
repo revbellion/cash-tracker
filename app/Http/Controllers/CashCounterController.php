@@ -6,9 +6,7 @@ use App\Models\Account;
 use App\Models\CashCounterSession;
 use App\Models\Expense;
 use App\Models\Income;
-use App\Models\OpeningBalance;
-use App\Models\Mutation;
-use App\Models\ReceivablePayment;
+use App\Services\DashboardService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,13 +16,17 @@ use Illuminate\View\View;
 
 class CashCounterController extends Controller
 {
+    public function __construct(
+        protected DashboardService $dashboardService
+    ) {}
+
     public function index(): View
     {
         $accounts = Account::active()->where('type', 'cash')->get();
         $cashAccount = Account::active()->where('name', config('accounts.cash_name'))->first();
         $hasCashAccounts = $accounts->isNotEmpty();
         $period = now()->format('Y-m');
-        $balances = $this->getAccountBalances($accounts, $period);
+        $balances = $this->dashboardService->calculateAccountBalances($accounts, $period);
 
         return view('cash-counter.index', compact('accounts', 'cashAccount', 'balances', 'hasCashAccounts'));
     }
@@ -41,7 +43,7 @@ class CashCounterController extends Controller
 
     public function show(CashCounterSession $session): JsonResponse
     {
-        if ($session->user_id !== auth()->id()) {
+        if ((int) $session->user_id !== (int) auth()->id()) {
             abort(403);
         }
         $session->load('account');
@@ -51,9 +53,18 @@ class CashCounterController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'account_id' => 'nullable|exists:accounts,id',
+            'account_id' => [
+                'nullable',
+                'exists:accounts,id',
+                function ($attribute, $value, $fail) {
+                    if ($value && Account::where('id', $value)->where('type', '!=', 'cash')->exists()) {
+                        $fail('Akun harus bertipe Cash.');
+                    }
+                },
+            ],
             'title' => 'required|string|max:255',
             'denominations' => 'required|array',
+            'denominations.*' => 'integer|min:0',
             'target_amount' => 'nullable|integer|min:0',
             'total_amount' => 'required|integer|min:0',
         ]);
@@ -74,14 +85,23 @@ class CashCounterController extends Controller
 
     public function update(Request $request, CashCounterSession $session): JsonResponse
     {
-        if ($session->user_id !== auth()->id()) {
+        if ((int) $session->user_id !== (int) auth()->id()) {
             abort(403);
         }
 
         $data = $request->validate([
-            'account_id' => 'nullable|exists:accounts,id',
+            'account_id' => [
+                'nullable',
+                'exists:accounts,id',
+                function ($attribute, $value, $fail) {
+                    if ($value && Account::where('id', $value)->where('type', '!=', 'cash')->exists()) {
+                        $fail('Akun harus bertipe Cash.');
+                    }
+                },
+            ],
             'title' => 'required|string|max:255',
             'denominations' => 'required|array',
+            'denominations.*' => 'integer|min:0',
             'target_amount' => 'nullable|integer|min:0',
             'total_amount' => 'required|integer|min:0',
         ]);
@@ -99,9 +119,18 @@ class CashCounterController extends Controller
 
     public function destroy(CashCounterSession $session): JsonResponse
     {
-        if ($session->user_id !== auth()->id()) {
+        if ((int) $session->user_id !== (int) auth()->id()) {
             abort(403);
         }
+
+        // Hapus adjustment Income/Expense terkait session ini
+        $pattern = 'Penyesuaian kas #' . $session->id . ':';
+        Income::where('category', 'OMSET')
+            ->where('description', 'like', $pattern . '%')
+            ->delete();
+        Expense::where('category', 'OMSET')
+            ->where('description', 'like', $pattern . '%')
+            ->delete();
 
         $session->delete();
 
@@ -110,14 +139,25 @@ class CashCounterController extends Controller
 
     public function adjust(Request $request, CashCounterSession $session): JsonResponse
     {
-        if ($session->user_id !== auth()->id()) {
+        if ((int) $session->user_id !== (int) auth()->id()) {
             abort(403);
         }
 
         $data = $request->validate([
             'type' => 'required|in:income,expense',
             'amount' => 'required|integer|min:1',
-            'account_id' => 'nullable|exists:accounts,id',
+            'account_id' => [
+                'nullable',
+                'exists:accounts,id',
+                function ($attribute, $value, $fail) {
+                    if ($value) {
+                        $account = Account::where('id', $value)->first();
+                        if (!$account || !$account->is_active) {
+                            $fail('Akun tidak aktif.');
+                        }
+                    }
+                },
+            ],
         ]);
 
         $accountId = $data['account_id'] ?? $session->account_id;
@@ -128,7 +168,7 @@ class CashCounterController extends Controller
         try {
             DB::transaction(function () use ($data, $session, $accountId) {
                 $label = $data['type'] === 'income' ? 'lebih' : 'kurang';
-                $description = 'Penyesuaian kas: ' . $session->title . ' (' . $label . ' Rp ' . number_format($data['amount'], 0, ',', '.') . ')';
+                $description = 'Penyesuaian kas #' . $session->id . ': ' . $session->title . ' (' . $label . ' Rp ' . number_format($data['amount'], 0, ',', '.') . ')';
 
                 if ($data['type'] === 'income') {
                     Income::create([
@@ -136,7 +176,7 @@ class CashCounterController extends Controller
                         'date' => now(),
                         'amount' => $data['amount'],
                         'description' => $description,
-                        'category' => 'Penyesuaian Kas',
+                        'category' => 'OMSET',
                     ]);
                 } else {
                     Expense::create([
@@ -144,7 +184,7 @@ class CashCounterController extends Controller
                         'date' => now(),
                         'amount' => $data['amount'],
                         'description' => $description,
-                        'category' => 'Penyesuaian Kas',
+                        'category' => 'OMSET',
                     ]);
                 }
             });
@@ -153,64 +193,5 @@ class CashCounterController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal membuat penyesuaian: ' . $e->getMessage()], 500);
         }
-    }
-
-    private function getAccountBalances(Collection $accounts, string $period): array
-    {
-        [$year, $month] = explode('-', $period);
-        $dateStart = sprintf('%04d-%02d-01', (int) $year, (int) $month);
-        $dateEnd = Carbon::parse($dateStart)->endOfMonth();
-
-        $openingBalances = OpeningBalance::where('period', $period)
-            ->pluck('amount', 'account_id');
-
-        $mutationsIn = Mutation::whereBetween('date', [$dateStart, $dateEnd])
-            ->selectRaw('to_account_id, SUM(amount) as total')
-            ->groupBy('to_account_id')
-            ->pluck('total', 'to_account_id');
-
-        $mutationsOut = Mutation::whereBetween('date', [$dateStart, $dateEnd])
-            ->selectRaw('from_account_id, SUM(amount) as total')
-            ->groupBy('from_account_id')
-            ->pluck('total', 'from_account_id');
-
-        $expenses = Expense::whereBetween('date', [$dateStart, $dateEnd])
-            ->selectRaw('account_id, SUM(amount) as total')
-            ->groupBy('account_id')
-            ->pluck('total', 'account_id');
-
-        $payments = ReceivablePayment::whereBetween('date', [$dateStart, $dateEnd])
-            ->selectRaw('account_id, SUM(amount) as total')
-            ->groupBy('account_id')
-            ->pluck('total', 'account_id');
-
-        $incomes = Income::whereBetween('date', [$dateStart, $dateEnd])
-            ->whereNotNull('account_id')
-            ->selectRaw('account_id, SUM(amount) as total')
-            ->groupBy('account_id')
-            ->pluck('total', 'account_id');
-
-        $balances = [];
-        foreach ($accounts as $account) {
-            $balances[$account->id] = (int) (
-                ($openingBalances[$account->id] ?? 0)
-                + ($mutationsIn[$account->id] ?? 0)
-                - ($mutationsOut[$account->id] ?? 0)
-                - ($expenses[$account->id] ?? 0)
-                + ($payments[$account->id] ?? 0)
-                + ($incomes[$account->id] ?? 0)
-            );
-        }
-
-        // Kurangkan total piutang unpaid dari cash
-        $totalPiutangUnpaid = \App\Models\Receivable::where('status', 'unpaid')->sum('amount');
-        $cashAccountName = config('accounts.cash_name');
-        foreach ($accounts as $account) {
-            if ($account->name === $cashAccountName) {
-                $balances[$account->id] -= $totalPiutangUnpaid;
-            }
-        }
-
-        return $balances;
     }
 }

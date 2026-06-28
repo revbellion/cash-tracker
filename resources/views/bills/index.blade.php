@@ -229,7 +229,9 @@ $overdue = !$bill->is_paid && (int)$bill->due_day < (int)now()->format('d');
                     <select name="account_id" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accounts as $account)
+                        @if($account->type !== 'ppob')
                         <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endif
                         @endforeach
                     </select>
                 </div>

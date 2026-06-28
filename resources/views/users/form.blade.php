@@ -3,6 +3,7 @@
     $isEditing = isset($user);
     $defaultPermissions = ['pos', 'stock_in', 'stock_opname'];
     $checkedPerms = old('permissions', $user->permissions ?? ($isEditing ? [] : $defaultPermissions));
+    $isAdmin = old('is_admin', $user->is_admin ?? false);
 @endphp
 @extends('layouts.app')
 
@@ -30,14 +31,18 @@
                 </div>
             </div>
 
-            @if($isEditing && $user->isAdmin())
-                <div class="alert alert-info alert-modern py-2 px-3 mt-3">
-                    <i class="fas fa-info-circle me-1"></i> User admin memiliki akses penuh ke semua modul.
+            <div class="mt-3">
+                <label class="form-label d-block">Hak Akses</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_admin" value="1" id="is_admin_toggle" {{ $isAdmin ? 'checked' : '' }} onchange="togglePermissionSection()">
+                    <label class="form-check-label fw-semibold" for="is_admin_toggle">Admin (Akses Penuh)</label>
                 </div>
-            @else
+            </div>
+
+            <div id="permission-section" style="display:{{ $isAdmin ? 'none' : 'block' }}">
                 <div class="mt-3">
                     <label class="form-label d-block">Akses Modul</label>
-                    <div class="text-muted mb-2" style="font-size:0.8rem;">Kosongkan semua untuk admin (full akses). Default karyawan: POS + Stok Masuk + Opname.</div>
+                    <div class="text-muted mb-2" style="font-size:0.8rem;">Pilih modul yang bisa diakses user ini.</div>
                     <div class="row g-2">
                         @foreach($permissionKeys as $perm)
                             <div class="col-md-4">
@@ -50,7 +55,7 @@
                         @endforeach
                     </div>
                 </div>
-            @endif
+            </div>
 
             <div class="mt-3 d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-modern">
@@ -61,4 +66,11 @@
         </form>
     </div>
 </div>
+
+<script>
+function togglePermissionSection() {
+    var isAdmin = document.getElementById('is_admin_toggle').checked;
+    document.getElementById('permission-section').style.display = isAdmin ? 'none' : 'block';
+}
+</script>
 @endsection

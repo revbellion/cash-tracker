@@ -16,19 +16,35 @@
 
 <form autocomplete="off" method="GET" action="{{ route('mutations.index') }}" class="row g-2 mb-4 filter-form">
     <div class="col-auto">
-        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm" style="width:auto;">
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm" style="width:auto;" onchange="this.form.submit()">
     </div>
     <div class="col-auto">
-        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm" style="width:auto;">
+        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm" style="width:auto;" onchange="this.form.submit()">
     </div>
     <div class="col-auto">
-        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari..." style="width:150px;">
+        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari..." style="width:150px;" oninput=" clearTimeout(this._timer); this._timer=setTimeout(()=>this.form.submit(),500)">
     </div>
     <div class="col-auto">
-        <button type="submit" class="btn btn-modern btn-primary btn-sm"><i class="fas fa-search me-1"></i>Cari</button>
         <a href="{{ route('mutations.index') }}" class="btn btn-modern btn-secondary btn-sm"><i class="fas fa-times me-1"></i>Reset</a>
     </div>
 </form>
+
+<div class="bulk-action-bar mb-3 d-none" id="bulkActionBar">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:rgba(var(--theme-primary-rgb),0.08);border:1px solid rgba(var(--theme-primary-rgb),0.2);">
+        <span class="fw-semibold" style="font-size:0.85rem;"><span id="bulkCount">0</span> dipilih</span>
+        <span class="fw-bold" style="font-size:0.85rem;color:var(--theme-primary);" id="bulkTotal"></span>
+        <form autocomplete="off" id="bulkDeleteForm" method="POST" action="{{ route('mutations.bulk-delete') }}" style="display:inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus data yang dipilih?').then(ok => ok && this.closest('form').submit());">
+                <i class="fas fa-trash me-1"></i>Hapus
+            </button>
+        </form>
+        <button type="button" class="btn btn-modern btn-secondary btn-sm" onclick="clearBulkSelection()">
+            <i class="fas fa-times me-1"></i>Batal
+        </button>
+    </div>
+</div>
 
 <div class="card card-modern shadow-sm">
     <div class="card-body p-0">
@@ -36,44 +52,57 @@
             <table class="table table-modern mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-3">Tanggal</th>
-                        <th>Dari</th>
-                        <th>Ke</th>
-                        <th>Nominal</th>
-                        <th>Keterangan</th>
+                        <th class="ps-3" style="width:40px;"><input type="checkbox" class="form-check-input bulk-select-all"></th>
+                        <th class="sortable" data-sort="date">Tanggal</th>
+                        <th class="sortable" data-sort="string">Dari</th>
+                        <th class="sortable" data-sort="string">Ke</th>
+                        <th class="sortable" data-sort="number">Nominal</th>
+                        <th class="sortable" data-sort="string">Keterangan</th>
                         <th class="pe-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($mutations as $mutasi)
                     <tr>
-                        <td class="ps-3">{{ tgl($mutasi->date) }}</td>
+                        <td class="ps-3">
+                            @if($mutasi->source === 'manual')
+                            <input type="checkbox" class="form-check-input bulk-select-item" value="{{ $mutasi->id }}" data-amount="{{ $mutasi->amount }}">
+                            @endif
+                        </td>
+                        <td>{{ tgl($mutasi->date) }}</td>
                         <td>{{ $mutasi->fromAccount->name ?? '-' }}</td>
                         <td>{{ $mutasi->toAccount->name ?? '-' }}</td>
                         <td class="fw-semibold">{{ rp($mutasi->amount) }}</td>
                         <td>{{ $mutasi->description ?? '-' }}</td>
                         <td class="pe-3">
-                            <button type="button" class="btn btn-modern btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditMutasi"
-                                data-id="{{ $mutasi->id }}"
-                                data-date="{{ $mutasi->date->format('Y-m-d') }}"
-                                data-from_account_id="{{ $mutasi->from_account_id }}"
-                                data-to_account_id="{{ $mutasi->to_account_id }}"
-                                data-amount="{{ $mutasi->amount }}"
-                                data-description="{{ $mutasi->description }}">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <form autocomplete="off" action="{{ route('mutations.destroy', $mutasi->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus mutasi ini?').then(ok => ok && this.form.submit());">
-                                    <i class="fas fa-trash"></i>
+                            @if($mutasi->source === 'manual')
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-modern btn-warning btn-sm"
+                                    data-bs-toggle="modal" data-bs-target="#modalEditMutasi"
+                                    data-id="{{ $mutasi->id }}"
+                                    data-date="{{ $mutasi->date->format('Y-m-d') }}"
+                                    data-from_account_id="{{ $mutasi->from_account_id }}"
+                                    data-to_account_id="{{ $mutasi->to_account_id }}"
+                                    data-amount="{{ $mutasi->amount }}"
+                                    data-description="{{ $mutasi->description }}">
+                                    <i class="fas fa-edit"></i>
                                 </button>
-                            </form>
+                                <form autocomplete="off" action="{{ route('mutations.destroy', $mutasi->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus mutasi ini?').then(ok => ok && this.form.submit());">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            @else
+                            <span class="badge bg-secondary" style="font-size:0.65rem;">{{ ucfirst($mutasi->source ?? 'Sistem') }}</span>
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">Belum ada data mutasi</td>
+                        <td colspan="7" class="text-center text-muted py-4">Belum ada data mutasi</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -114,22 +143,24 @@
                     <select name="from_account_id" id="add-mutation-from" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accounts as $account)
-                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        <option value="{{ $account->id }}" data-balance="{{ $accountBalances[$account->id] ?? 0 }}">{{ $account->name }}</option>
                         @endforeach
                     </select>
+                    <small id="add-mutation-from-balance" class="text-muted" style="font-size:0.8rem;">Saldo: -</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Ke Akun</label>
                     <select name="to_account_id" id="add-mutation-to" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accounts as $account)
-                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        <option value="{{ $account->id }}" data-balance="{{ $accountBalances[$account->id] ?? 0 }}">{{ $account->name }}</option>
                         @endforeach
                     </select>
+                    <small id="add-mutation-to-balance" class="text-muted" style="font-size:0.8rem;">Saldo: -</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Nominal</label>
-                    <input type="number" step="1" name="amount" class="form-control" required>
+                    <input type="number" step="1" name="amount" id="add-mutation-amount" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Keterangan</label>
@@ -196,6 +227,56 @@
 
 @push('scripts')
 <script>
+// Bulk selection
+document.querySelector('.bulk-select-all')?.addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateBulkBar();
+});
+
+document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+function updateBulkBar() {
+    var checked = document.querySelectorAll('.bulk-select-item:checked');
+    var count = checked.length;
+    var bar = document.getElementById('bulkActionBar');
+    if (!bar) return;
+    
+    if (count > 0) {
+        bar.classList.remove('d-none');
+        document.getElementById('bulkCount').textContent = count;
+        
+        var total = 0;
+        checked.forEach(function(cb) { total += parseInt(cb.dataset.amount) || 0; });
+        document.getElementById('bulkTotal').textContent = total > 0 ? 'Total: Rp ' + total.toLocaleString('id-ID') : '';
+        
+        var ids = [];
+        checked.forEach(function(cb) { ids.push(cb.value); });
+        var form = document.getElementById('bulkDeleteForm');
+        form.querySelectorAll('input[name="ids[]"]').forEach(function(el) { el.remove(); });
+        ids.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+    } else {
+        bar.classList.add('d-none');
+    }
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.bulk-select-item, .bulk-select-all').forEach(function(cb) {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+
 // Fungsi untuk dropdown exclusion
 function setupDropdownExclusion(fromId, toId) {
     var fromSelect = document.getElementById(fromId);
@@ -233,6 +314,37 @@ function setupDropdownExclusion(fromId, toId) {
         });
     }
 }
+
+// Update saldo + proyeksi realtime
+function setupSaldoProjection(selectId, amountId, displayId, mode) {
+    var select = document.getElementById(selectId);
+    var amount = document.getElementById(amountId);
+    var display = document.getElementById(displayId);
+    if (!select || !display) return;
+
+    function update() {
+        var opt = select.options[select.selectedIndex];
+        var balance = opt && opt.value !== '' ? parseInt(opt.dataset.balance || 0) : null;
+        var nominal = amount ? parseInt(amount.value) || 0 : 0;
+
+        if (balance === null) {
+            display.textContent = 'Saldo: -';
+            return;
+        }
+        if (nominal > 0) {
+            var projected = mode === 'from' ? balance - nominal : balance + nominal;
+            display.textContent = 'Saldo: Rp ' + balance.toLocaleString('id-ID') + ' \u2192 Rp ' + projected.toLocaleString('id-ID');
+        } else {
+            display.textContent = 'Saldo: Rp ' + balance.toLocaleString('id-ID');
+        }
+    }
+
+    select.addEventListener('change', update);
+    if (amount) amount.addEventListener('input', update);
+}
+
+setupSaldoProjection('add-mutation-from', 'add-mutation-amount', 'add-mutation-from-balance', 'from');
+setupSaldoProjection('add-mutation-to', 'add-mutation-amount', 'add-mutation-to-balance', 'to');
 
 // Setup untuk modalTambahMutasi
 setupDropdownExclusion('add-mutation-from', 'add-mutation-to');

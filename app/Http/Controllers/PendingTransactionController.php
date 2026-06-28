@@ -32,9 +32,12 @@ class PendingTransactionController extends Controller
 
     public function store(StorePendingTransactionRequest $request)
     {
-        $this->pendingService->create($request->validated());
-
-        return redirect()->back()->with('success', 'Transaksi pending berhasil dicatat.');
+        try {
+            $this->pendingService->create($request->validated());
+            return redirect()->back()->with('success', 'Transaksi pending berhasil dicatat.');
+        } catch (\DomainException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
     }
 
     public function complete(Request $request, $id)
@@ -61,6 +64,21 @@ class PendingTransactionController extends Controller
         } catch (\DomainException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+        $deleted = 0;
+        foreach ($request->ids as $id) {
+            try {
+                $this->pendingService->delete($id);
+                $deleted++;
+            } catch (\Exception $e) {
+                // skip
+            }
+        }
+        return redirect()->back()->with('success', "{$deleted} data berhasil dihapus.");
     }
 
     public function export(Request $request)

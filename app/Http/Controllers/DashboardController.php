@@ -32,6 +32,9 @@ class DashboardController extends Controller
             $data['categories'] = Expense::select('category')->distinct()->pluck('category');
             $data['incomeCategories'] = Income::select('category')->distinct()->pluck('category');
 
+            if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $period)) {
+                $period = now()->format('Y-m');
+            }
             [$year, $month] = explode('-', $period);
             $start = sprintf('%04d-%02d-01', $year, $month);
             $end = \Carbon\Carbon::parse($start)->endOfMonth();
@@ -42,7 +45,6 @@ class DashboardController extends Controller
                 ->pluck('total', 'category');
 
             $data['billSummary'] = $this->billService->getDueBillsCount($period);
-            $data['products'] = \App\Models\Product::activeWithCategory()->get();
             $data['unpaidBills'] = \App\Models\RecurringBill::with('account')
                 ->where('is_active', true)
                 ->whereDoesntHave('payments', function ($q) use ($period) {

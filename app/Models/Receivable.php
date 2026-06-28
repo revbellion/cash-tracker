@@ -16,6 +16,10 @@ class Receivable extends Model
         'date',
         'due_date',
         'status',
+        'account_id',
+        'expense_id',
+        'income_id',
+        'customer_id',
     ];
 
     protected function casts(): array
@@ -35,6 +39,11 @@ class Receivable extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function scopeUnpaid($query)
@@ -59,7 +68,11 @@ class Receivable extends Model
             return '<span class="badge bg-success">Lunas</span>';
         }
 
-        if ($this->due_date && $this->due_date->startOfDay()->lt(now()->startOfDay())) {
+        if ($this->status === 'voided') {
+            return '<span class="badge bg-secondary">Dibatalkan</span>';
+        }
+
+        if ($this->due_date && $this->due_date->copy()->startOfDay()->lt(now()->startOfDay())) {
             return '<span class="badge bg-danger">Telat</span>';
         }
 

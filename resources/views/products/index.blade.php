@@ -4,9 +4,54 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0">Daftar Barang</h4>
-    <button type="button" class="btn btn-modern btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
-        <i class="fas fa-plus me-1"></i>Tambah Barang
-    </button>
+    <div class="d-flex gap-2">
+        <a href="{{ route('products.template') }}" class="btn btn-modern btn-outline-secondary btn-sm">
+            <i class="fas fa-file-download me-1"></i>Template
+        </a>
+        <a href="{{ route('products.export', request()->only(['category', 'search'])) }}" class="btn btn-modern btn-outline-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Export
+        </a>
+        <button type="button" class="btn btn-modern btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport">
+            <i class="fas fa-file-upload me-1"></i>Import
+        </button>
+        <button type="button" class="btn btn-modern btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
+            <i class="fas fa-plus me-1"></i>Tambah Barang
+        </button>
+    </div>
+</div>
+
+<form autocomplete="off" method="GET" action="{{ route('products.index') }}" class="row g-2 mb-4 filter-form">
+    <div class="col-auto">
+        <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            <option value="">Semua Kategori</option>
+            @foreach($categories as $cat)
+            <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="col-auto">
+        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari barang..." style="width:150px;" oninput=" clearTimeout(this._timer); this._timer=setTimeout(()=>this.form.submit(),500)">
+    </div>
+    <div class="col-auto">
+        <a href="{{ route('products.index') }}" class="btn btn-modern btn-secondary btn-sm"><i class="fas fa-times me-1"></i>Reset</a>
+    </div>
+</form>
+
+<div class="bulk-action-bar mb-3 d-none" id="bulkActionBar">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:rgba(var(--theme-primary-rgb),0.08);border:1px solid rgba(var(--theme-primary-rgb),0.2);">
+        <span class="fw-semibold" style="font-size:0.85rem;"><span id="bulkCount">0</span> dipilih</span>
+        <span class="fw-bold" style="font-size:0.85rem;color:var(--theme-primary);" id="bulkTotal"></span>
+        <form autocomplete="off" id="bulkDeleteForm" method="POST" action="{{ route('products.bulk-delete') }}" style="display:inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus data yang dipilih?').then(ok => ok && this.closest('form').submit());">
+                <i class="fas fa-trash me-1"></i>Hapus
+            </button>
+        </form>
+        <button type="button" class="btn btn-modern btn-secondary btn-sm" onclick="clearBulkSelection()">
+            <i class="fas fa-times me-1"></i>Batal
+        </button>
+    </div>
 </div>
 
 <div class="card card-modern shadow-sm">
@@ -15,18 +60,20 @@
             <table class="table table-modern mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-3">Nama</th>
-                        <th>Kategori</th>
-                        <th>Harga Beli</th>
-                        <th>Harga Jual</th>
-                        <th>Stok</th>
-                        <th>Satuan</th>
+                        <th class="ps-3" style="width:40px;"><input type="checkbox" class="form-check-input bulk-select-all"></th>
+                        <th class="sortable" data-sort="string">Nama</th>
+                        <th class="sortable" data-sort="string">Kategori</th>
+                        <th class="sortable" data-sort="number">Harga Beli</th>
+                        <th class="sortable" data-sort="number">Harga Jual</th>
+                        <th class="sortable" data-sort="number">Stok</th>
+                        <th class="sortable" data-sort="string">Satuan</th>
                         <th class="pe-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products as $product)
                     <tr class="{{ !$product->is_active ? 'text-muted' : ($product->is_low_stock ? 'table-warning' : '') }}">
+                        <td class="ps-3"><input type="checkbox" class="form-check-input bulk-select-item" value="{{ $product->id }}" data-amount="{{ $product->selling_price }}"></td>
                         <td class="ps-3 fw-semibold">{{ $product->name }}</td>
                         <td>{{ $product->category->name ?? '-' }}</td>
                         <td>{{ rp($product->purchase_price) }}</td>
@@ -69,7 +116,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Belum ada barang</td>
+                        <td colspan="8" class="text-center text-muted py-4">Belum ada barang</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -182,15 +229,11 @@
                     </div>
                 </div>
                 <div class="row g-2 mb-3">
-                    <div class="col-4">
-                        <label class="form-label">Stok</label>
-                        <input type="number" step="1" name="stock" id="edit-stock" class="form-control" required>
-                    </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <label class="form-label">Stok Minimal</label>
                         <input type="number" step="1" name="stock_min" id="edit-stock_min" class="form-control" required>
                     </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <label class="form-label">Satuan</label>
                         <input type="text" name="unit" id="edit-unit" class="form-control" required>
                     </div>
@@ -203,10 +246,91 @@
         </form>
     </div>
 </div>
+
+<div class="modal fade modal-modern" tabindex="-1" id="modalImport">
+    <div class="modal-dialog">
+        <form autocomplete="off" method="POST" action="{{ route('products.import') }}" enctype="multipart/form-data" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold"><i class="fas fa-file-upload me-2 text-primary"></i>Import Barang</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">Upload file Excel (.xlsx/.xls) dengan kolom: <strong>Nama, Kategori, Harga Beli, Harga Jual, Stok Minimum, Satuan</strong>.</p>
+                <p class="small text-muted mb-3">
+                    <a href="{{ route('products.template') }}" class="text-decoration-underline"><i class="fas fa-download me-1"></i>Download template</a> terlebih dahulu jika belum punya.
+                </p>
+                <div class="mb-3">
+                    <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                </div>
+                <div class="alert alert-info small mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Barang baru akan ditambahkan. Barang yang sudah ada (berdasarkan nama) akan diperbarui datanya.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-upload me-1"></i>Import
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
+// Bulk selection
+document.querySelector('.bulk-select-all')?.addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateBulkBar();
+});
+
+document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+function updateBulkBar() {
+    var checked = document.querySelectorAll('.bulk-select-item:checked');
+    var count = checked.length;
+    var bar = document.getElementById('bulkActionBar');
+    if (!bar) return;
+    
+    if (count > 0) {
+        bar.classList.remove('d-none');
+        document.getElementById('bulkCount').textContent = count;
+        
+        var total = 0;
+        checked.forEach(function(cb) { total += parseInt(cb.dataset.amount) || 0; });
+        document.getElementById('bulkTotal').textContent = total > 0 ? 'Total: Rp ' + total.toLocaleString('id-ID') : '';
+        
+        var ids = [];
+        checked.forEach(function(cb) { ids.push(cb.value); });
+        var form = document.getElementById('bulkDeleteForm');
+        form.querySelectorAll('input[name="ids[]"]').forEach(function(el) { el.remove(); });
+        ids.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+    } else {
+        bar.classList.add('d-none');
+    }
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.bulk-select-item, .bulk-select-all').forEach(function(cb) {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+
 $('#modalEditBarang').on('show.bs.modal', function (event) {
     var button = $(event.relatedTarget);
     var id = button.data('id');
@@ -214,7 +338,6 @@ $('#modalEditBarang').on('show.bs.modal', function (event) {
     $('#edit-category_id').val(button.data('category_id'));
     $('#edit-purchase_price').val(button.data('purchase_price'));
     $('#edit-selling_price').val(button.data('selling_price'));
-    $('#edit-stock').val(button.data('stock'));
     $('#edit-stock_min').val(button.data('stock_min'));
     $('#edit-unit').val(button.data('unit'));
     $('#formEditBarang').attr('action', '{{ url("products") }}/' + id);

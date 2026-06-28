@@ -51,9 +51,26 @@ class BillService
 
     public function payBill(RecurringBill $bill, string $period, ?int $overrideAmount = null, ?int $overrideAccountId = null): BillPayment
     {
+        // Validasi format periode Y-m
+        if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
+            throw new \InvalidArgumentException('Format periode tidak valid. Gunakan format Y-m (contoh: 2026-06).');
+        }
+
         return DB::transaction(function () use ($bill, $period, $overrideAmount, $overrideAccountId) {
+            // Lock bill biar 2 request gak bisa bayar bersamaan
+            $bill = RecurringBill::lockForUpdate()->findOrFail($bill->id);
+
             $amount = $overrideAmount ?? $bill->amount;
             $accountId = $overrideAccountId ?? $bill->account_id;
+
+            // Hapus Expense lama jika ada pembayaran sebelumnya untuk periode ini
+            $existingPayment = BillPayment::lockForUpdate()
+                ->where('recurring_bill_id', $bill->id)
+                ->where('period', $period)
+                ->first();
+            if ($existingPayment && $existingPayment->expense_id) {
+                Expense::where('id', $existingPayment->expense_id)->delete();
+            }
 
             $expense = Expense::create([
                 'account_id' => $accountId,

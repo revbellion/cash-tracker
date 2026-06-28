@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\OpeningBalance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OpeningBalanceController extends Controller
 {
@@ -33,15 +34,17 @@ class OpeningBalanceController extends Controller
             $period = $validated['period'];
             $balances = $validated['balances'];
 
-            foreach ($balances as $accountId => $amount) {
-                OpeningBalance::updateOrCreate(
-                    [
-                        'account_id' => $accountId,
-                        'period' => $period,
-                    ],
-                    ['amount' => $amount]
-                );
-            }
+            DB::transaction(function () use ($period, $balances) {
+                foreach ($balances as $accountId => $amount) {
+                    OpeningBalance::updateOrCreate(
+                        [
+                            'account_id' => $accountId,
+                            'period' => $period,
+                        ],
+                        ['amount' => $amount]
+                    );
+                }
+            });
 
             return redirect()->back()->with('success', 'Opening balances saved successfully.');
         } catch (\Exception $e) {

@@ -1,110 +1,110 @@
 @extends('layouts.app')
-@section('title', 'Penjualan')
+@section('title', 'POS Penjualan')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0"><i class="fas fa-cash-register me-2" style="color:#f59e0b;"></i>POS Penjualan</h4>
-</div>
-
 <form autocomplete="off" method="POST" action="{{ route('stock.sales.store') }}" id="formPenjualan">
     @csrf
     <input type="hidden" name="account_id" id="pos-account" value="">
     <input type="hidden" name="date" id="pos-date" value="">
+    <input type="hidden" name="discount" id="pos-discount-hidden" value="0">
 
-    <div class="row g-3">
-        {{-- LEFT: Cart --}}
-        <div class="col-lg-7">
-            <div class="card card-modern shadow-sm pos-cart-card" style="min-height:500px;">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <span class="fw-semibold"><i class="fas fa-shopping-cart me-2 text-warning"></i>Keranjang</span>
-                    <div>
-                        <select id="pos-account-select" class="form-select form-select-sm d-inline-block" style="width:auto;border-radius:8px;" required>
-                            <option value="">Akun</option>
-                            @foreach($accounts as $account)
-                            <option value="{{ $account->id }}">{{ $account->name }}</option>
-                            @endforeach
-                        </select>
-                        <input type="date" id="pos-date-input" value="{{ date('Y-m-d') }}" class="form-control form-control-sm d-inline-block" style="width:auto;border-radius:8px;">
+    <div class="pos-layout">
+        {{-- LEFT: Products --}}
+        <div class="pos-products">
+            <div class="pos-products-header">
+                <div class="pos-search-wrap">
+                    <i class="fas fa-search pos-search-icon"></i>
+                    <input type="text" id="pos-search" class="pos-search-input" placeholder="Cari barang...">
+                </div>
+                <div class="pos-account-date">
+                    <select id="pos-account-select" class="pos-select" required>
+                        <option value="">Akun</option>
+                        @foreach($accounts as $account)
+                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endforeach
+                    </select>
+                    <input type="date" id="pos-date-input" value="{{ date('Y-m-d') }}" class="pos-input-date">
+                </div>
+            </div>
+
+            <div class="pos-category-tabs" id="pos-category-tabs">
+                <button type="button" class="pos-cat-tab active" data-cat="">Semua</button>
+                @foreach($categories as $cat)
+                <button type="button" class="pos-cat-tab" data-cat="{{ $cat->id }}">{{ $cat->name }}</button>
+                @endforeach
+            </div>
+
+            <div class="pos-product-grid" id="pos-product-grid">
+                @foreach($products as $product)
+                <div class="pos-product-card {{ $product->stock < 1 ? 'pos-out-of-stock' : '' }}"
+                    data-category="{{ $product->category_id }}"
+                    data-id="{{ $product->id }}"
+                    data-name="{{ $product->name }}"
+                    data-price="{{ $product->selling_price }}"
+                    data-unit="{{ $product->unit }}"
+                    data-stock="{{ $product->stock }}">
+                    <div class="pos-product-name">{{ $product->name }}</div>
+                    <div class="pos-product-price">{{ rp($product->selling_price) }}</div>
+                    <div class="pos-product-stock">
+                        @if($product->stock > 0)
+                            Stok: {{ $product->stock }} {{ $product->unit }}
+                        @else
+                            <span class="text-danger">Habis</span>
+                        @endif
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <div id="pos-cart" class="p-3" style="min-height:300px;">
-                        <div class="text-center text-muted py-5" id="pos-cart-empty">
-                            <i class="fas fa-cart-plus fa-3x mb-3" style="opacity:0.3;"></i>
-                            <p class="mb-0">Klik produk di samping untuk menambah</p>
-                        </div>
-                        <div id="pos-cart-items" style="display:none;"></div>
-                    </div>
-                </div>
-                <div class="card-footer" id="pos-cart-footer" style="display:none;">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-6">
-                            <small class="text-muted">Total Item</small>
-                            <span class="fw-bold ms-2" id="pos-total-item">0</span>
-                        </div>
-                        <div class="col-6 text-end">
-                            <small class="text-muted">Total</small>
-                            <h4 class="fw-bold mb-0" id="pos-grand-total">Rp 0</h4>
-                        </div>
-                    </div>
-                    <div class="row g-2 mt-2 pos-cart-footer-row">
-                        <div class="col-5">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text" style="border-radius:8px 0 0 8px;">Bayar</span>
-                                <input type="number" id="pos-bayar" class="form-control" placeholder="0" min="0" style="border-radius:0 8px 8px 0;">
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text" style="border-radius:8px 0 0 8px;">Kembali</span>
-                                <input type="text" id="pos-kembali" class="form-control" readonly style="border-radius:0 8px 8px 0;background:#f1f5f9;font-weight:600;">
-                            </div>
-                        </div>
-                        <div class="col-4 text-end">
-                            <button type="submit" class="btn btn-modern btn-success w-100" id="pos-submit" disabled>
-                                <i class="fas fa-check me-1"></i>Bayar Rp 0
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                @endforeach
             </div>
         </div>
 
-        {{-- RIGHT: Product Grid --}}
-        <div class="col-lg-5">
-            <div class="card card-modern shadow-sm pos-grid-card" style="min-height:500px;">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <span class="fw-semibold"><i class="fas fa-box me-2" style="color:var(--theme-primary);"></i>Pilih Barang</span>
-                    <select id="pos-category-filter" class="form-select form-select-sm" style="width:auto;border-radius:8px;">
-                        <option value="">Semua</option>
-                        @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                        @endforeach
-                    </select>
+        {{-- RIGHT: Cart --}}
+        <div class="pos-cart">
+            <div class="pos-cart-header">
+                <div class="pos-cart-title">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Keranjang</span>
+                    <span class="pos-cart-count" id="pos-cart-count">0</span>
                 </div>
-                <div class="card-body p-3 pos-grid-scroll" id="pos-product-grid" style="max-height:450px;overflow-y:auto;">
-                    <div class="row g-2">
-                        @foreach($products as $product)
-                        <div class="col-6 pos-product-item" data-category="{{ $product->category_id }}" data-id="{{ $product->id }}">
-                            <button type="button" class="btn btn-modern btn-outline-secondary w-100 text-start p-3 pos-product-btn"
-                                data-id="{{ $product->id }}"
-                                data-name="{{ $product->name }}"
-                                data-price="{{ $product->selling_price }}"
-                                data-unit="{{ $product->unit }}"
-                                data-stock="{{ $product->stock }}"
-                                style="border-radius:10px;height:100%;"
-                                {{ $product->stock < 1 ? 'disabled' : '' }}>
-                                <div class="fw-semibold" style="font-size:0.85rem;">{{ $product->name }}</div>
-                                <div class="text-warning fw-bold mt-1">{{ rp($product->selling_price) }}</div>
-                                <small class="text-muted">Stok: {{ $product->stock }} {{ $product->unit }}</small>
-                                @if($product->stock < 1)
-                                <div class="text-danger small mt-1"><i class="fas fa-times-circle"></i> Habis</div>
-                                @endif
-                            </button>
-                        </div>
-                        @endforeach
+            </div>
+
+            <div class="pos-cart-body" id="pos-cart-body">
+                <div class="pos-cart-empty" id="pos-cart-empty">
+                    <i class="fas fa-cart-plus"></i>
+                    <p>Klik barang untuk menambah</p>
+                </div>
+                <div class="pos-cart-items" id="pos-cart-items"></div>
+            </div>
+
+            <div class="pos-cart-footer" id="pos-cart-footer" style="display:none;">
+                <div class="pos-cart-summary">
+                    <div class="pos-summary-row">
+                        <span>Subtotal</span>
+                        <span id="pos-subtotal">Rp 0</span>
+                    </div>
+                    <div class="pos-summary-row">
+                        <span>Diskon</span>
+                        <input type="number" id="pos-diskon" placeholder="0" min="0" value="0" style="width:120px;text-align:right;border:1px solid #ddd;border-radius:6px;padding:4px 8px;font-size:0.9rem;">
+                    </div>
+                    <div class="pos-summary-row pos-summary-total">
+                        <span>Total</span>
+                        <span id="pos-grand-total">Rp 0</span>
                     </div>
                 </div>
+
+                <div class="pos-cart-bayar">
+                    <div class="pos-bayar-input">
+                        <label>Bayar</label>
+                        <input type="number" id="pos-bayar" placeholder="0" min="0">
+                    </div>
+                    <div class="pos-bayar-input">
+                        <label>Kembali</label>
+                        <input type="text" id="pos-kembali" readonly value="Rp 0">
+                    </div>
+                </div>
+
+                <button type="submit" class="pos-btn-bayar" id="pos-submit" disabled>
+                    <i class="fas fa-check"></i> BAYAR
+                </button>
             </div>
         </div>
     </div>
@@ -122,11 +122,11 @@
                     <table class="table table-modern mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-3">Nota</th>
-                                <th>Tanggal</th>
-                                <th>Item</th>
-                                <th>Barang</th>
-                                <th>Total</th>
+                                <th class="ps-3 sortable" data-sort="string">Nota</th>
+                                <th class="sortable" data-sort="date">Tanggal</th>
+                                <th class="sortable" data-sort="number">Item</th>
+                                <th class="sortable" data-sort="string">Barang</th>
+                                <th class="sortable" data-sort="number">Total</th>
                                 <th class="pe-3">Aksi</th>
                             </tr>
                         </thead>
@@ -149,6 +149,11 @@
                                     <a href="{{ route('stock.receipt', $receipt->receipt_id) }}" target="_blank" class="btn btn-modern btn-success btn-sm py-0 px-2" style="font-size:0.7rem;">
                                         <i class="fas fa-print"></i>
                                     </a>
+                                    @if(Auth::user()->hasPermission(config('permissions.RETURNS')))
+                                    <a href="{{ route('returns.index', ['search' => $receipt->receipt_id]) }}" class="btn btn-modern btn-warning btn-sm py-0 px-2" style="font-size:0.7rem;" title="Retur">
+                                        <i class="fas fa-undo-alt"></i>
+                                    </a>
+                                    @endif
                                     @if(Auth::user()->isAdmin())
                                     <form autocomplete="off" action="{{ route('stock.sales.destroy', $receipt->receipt_id) }}" method="POST" class="d-inline"
                                         onsubmit="event.preventDefault(); confirmDelete('Yakin hapus penjualan {{ $receipt->receipt_id }}?').then(ok => ok && this.submit());">
@@ -189,6 +194,486 @@
 </div>
 @endsection
 
+@push('styles')
+<style>
+/* POS Layout */
+.pos-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1rem;
+    min-height: calc(100vh - 200px);
+}
+
+/* Products Panel */
+.pos-products {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    overflow: hidden;
+}
+
+.pos-products-header {
+    padding: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.pos-search-wrap {
+    flex: 1;
+    position: relative;
+}
+
+.pos-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.pos-search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.pos-search-input:focus {
+    border-color: var(--theme-primary);
+}
+
+.pos-account-date {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pos-select, .pos-input-date {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.pos-select:focus, .pos-input-date:focus {
+    border-color: var(--theme-primary);
+}
+
+/* Category Tabs */
+.pos-category-tabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border-subtle);
+    scrollbar-width: none;
+}
+
+.pos-category-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.pos-cat-tab {
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pos-cat-tab:hover {
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+}
+
+.pos-cat-tab.active {
+    background: var(--theme-primary);
+    border-color: var(--theme-primary);
+    color: #fff;
+}
+
+/* Product Grid */
+.pos-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
+}
+
+.pos-product-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+}
+
+.pos-product-card:hover {
+    border-color: var(--theme-primary);
+    box-shadow: 0 2px 8px rgba(var(--theme-primary-rgb), 0.15);
+    transform: translateY(-1px);
+}
+
+.pos-product-card.pos-out-of-stock {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pos-product-card.pos-out-of-stock:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border-subtle);
+}
+
+.pos-product-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.pos-product-price {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--theme-primary);
+    margin-bottom: 0.25rem;
+}
+
+.pos-product-stock {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Cart Panel */
+.pos-cart {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+}
+
+.pos-cart-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.pos-cart-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.pos-cart-title i {
+    color: var(--theme-primary);
+}
+
+.pos-cart-count {
+    background: var(--theme-primary);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+/* Cart Body */
+.pos-cart-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    min-height: 200px;
+}
+
+.pos-cart-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 180px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.pos-cart-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.3;
+}
+
+.pos-cart-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pos-cart-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem;
+    border-radius: 8px;
+    background: rgba(var(--theme-primary-rgb), 0.03);
+    border: 1px solid var(--border-subtle);
+}
+
+.pos-cart-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pos-cart-item-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pos-cart-item-price {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.pos-cart-item-qty {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.pos-qty-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.1s;
+    padding: 0;
+}
+
+.pos-qty-btn:hover {
+    background: var(--border-subtle);
+}
+
+.pos-qty-btn.pos-qty-minus:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.pos-qty-btn.pos-qty-plus:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.pos-qty-num {
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 20px;
+    text-align: center;
+}
+
+.pos-cart-item-subtotal {
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    min-width: 70px;
+    text-align: right;
+}
+
+.pos-cart-item-remove {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.1s;
+    padding: 0;
+}
+
+.pos-cart-item-remove:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+/* Cart Footer */
+.pos-cart-footer {
+    border-top: 1px solid var(--border-subtle);
+    padding: 1rem;
+}
+
+.pos-cart-summary {
+    margin-bottom: 0.75rem;
+}
+
+.pos-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.pos-summary-total {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+/* Bayar Section */
+.pos-cart-bayar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.pos-bayar-input label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.pos-bayar-input input {
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.pos-bayar-input input:focus {
+    border-color: var(--theme-primary);
+}
+
+.pos-bayar-input input[readonly] {
+    background: rgba(var(--theme-primary-rgb), 0.05);
+    color: var(--theme-primary);
+}
+
+/* Bayar Button */
+.pos-btn-bayar {
+    width: 100%;
+    padding: 0.85rem;
+    border: none;
+    border-radius: 10px;
+    background: var(--theme-primary);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.pos-btn-bayar:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--theme-primary-rgb), 0.3);
+}
+
+.pos-btn-bayar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .pos-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .pos-cart {
+        position: static;
+        max-height: none;
+    }
+
+    .pos-product-grid {
+        max-height: 400px;
+    }
+}
+
+@media (max-width: 576px) {
+    .pos-products-header {
+        flex-direction: column;
+    }
+
+    .pos-account-date {
+        width: 100%;
+    }
+
+    .pos-select, .pos-input-date {
+        flex: 1;
+    }
+
+    .pos-product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
 var cart = {};
@@ -202,12 +687,14 @@ function renderCart() {
     var container = document.getElementById('pos-cart-items');
     var empty = document.getElementById('pos-cart-empty');
     var footer = document.getElementById('pos-cart-footer');
+    var countEl = document.getElementById('pos-cart-count');
     var ids = Object.keys(cart);
 
     if (ids.length === 0) {
         empty.style.display = '';
         container.style.display = 'none';
         footer.style.display = 'none';
+        countEl.textContent = '0';
         document.getElementById('pos-submit').disabled = true;
         return;
     }
@@ -226,14 +713,18 @@ function renderCart() {
         total += subtotal;
         itemCount += item.qty;
 
-        html += '<div class="d-flex align-items-center gap-2 mb-2 p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);">';
-        html += '<div class="flex-grow-1"><div class="fw-semibold" style="font-size:0.85rem;">' + item.name + '</div>';
-        html += '<small class="text-muted">' + formatRp(item.price) + ' / ' + item.unit + ' (sisa ' + (item.stock - item.qty) + ')</small></div>';
-        html += '<div class="d-flex align-items-center gap-1"><button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 pos-qty-minus" data-id="' + id + '" style="border-radius:6px;font-size:0.7rem;">−</button>';
-        html += '<span class="fw-bold px-2" style="min-width:24px;text-align:center;">' + item.qty + '</span>';
-        html += '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 pos-qty-plus" data-id="' + id + '" style="border-radius:6px;font-size:0.7rem;">+</button></div>';
-        html += '<div class="fw-bold text-end" style="min-width:80px;">' + formatRp(subtotal) + '</div>';
-        html += '<button type="button" class="btn btn-sm btn-danger py-0 px-2 pos-remove" data-id="' + id + '" style="border-radius:8px;font-size:0.7rem;"><i class="fas fa-times"></i></button>';
+        html += '<div class="pos-cart-item">';
+        html += '<div class="pos-cart-item-info">';
+        html += '<div class="pos-cart-item-name">' + item.name + '</div>';
+        html += '<div class="pos-cart-item-price">' + formatRp(item.price) + ' / ' + item.unit + '</div>';
+        html += '</div>';
+        html += '<div class="pos-cart-item-qty">';
+        html += '<button type="button" class="pos-qty-btn pos-qty-minus" data-id="' + id + '">−</button>';
+        html += '<span class="pos-qty-num">' + item.qty + '</span>';
+        html += '<button type="button" class="pos-qty-btn pos-qty-plus" data-id="' + id + '">+</button>';
+        html += '</div>';
+        html += '<div class="pos-cart-item-subtotal">' + formatRp(subtotal) + '</div>';
+        html += '<button type="button" class="pos-cart-item-remove pos-remove" data-id="' + id + '"><i class="fas fa-times"></i></button>';
         html += '<input type="hidden" name="items[' + id + '][product_id]" value="' + id + '">';
         html += '<input type="hidden" name="items[' + id + '][qty]" value="' + item.qty + '">';
         html += '<input type="hidden" name="items[' + id + '][price]" value="' + item.price + '">';
@@ -242,11 +733,10 @@ function renderCart() {
 
     container.innerHTML = html;
     totalRp = total;
-    document.getElementById('pos-total-item').textContent = itemCount;
-    document.getElementById('pos-grand-total').textContent = formatRp(total);
-    document.getElementById('pos-submit').innerHTML = '<i class="fas fa-check me-1"></i>Bayar ' + formatRp(total);
+    countEl.textContent = itemCount;
+    document.getElementById('pos-subtotal').textContent = formatRp(total);
+    updateGrandTotal();
     document.getElementById('pos-submit').disabled = false;
-    hitungKembali();
 }
 
 function addToCart(id, name, price, unit, stock) {
@@ -275,29 +765,45 @@ function removeFromCart(id) {
 
 function hitungKembali() {
     var bayar = parseInt(document.getElementById('pos-bayar').value) || 0;
-    var kembali = bayar - totalRp;
-    document.getElementById('pos-kembali').value = kembali >= 0 ? 'Rp ' + kembali.toLocaleString('id-ID') : 'Kurang Rp ' + Math.abs(kembali).toLocaleString('id-ID');
+    var diskon = parseInt(document.getElementById('pos-diskon').value) || 0;
+    var grandTotal = totalRp - diskon;
+    if (grandTotal < 0) grandTotal = 0;
+    var kembali = bayar - grandTotal;
+    var el = document.getElementById('pos-kembali');
+    if (bayar === 0) {
+        el.value = 'Rp 0';
+    } else if (kembali >= 0) {
+        el.value = formatRp(kembali);
+    } else {
+        el.value = 'Kurang ' + formatRp(Math.abs(kembali));
+    }
 }
 
-// Sync selects to hidden inputs
-function syncForm() {
-    var accountEl = document.getElementById('pos-account-select');
-    var dateEl = document.getElementById('pos-date-input');
-    document.getElementById('pos-account').value = accountEl.value;
-    document.getElementById('pos-date').value = dateEl.value;
+function updateGrandTotal() {
+    var diskon = parseInt(document.getElementById('pos-diskon').value) || 0;
+    var grandTotal = totalRp - diskon;
+    if (grandTotal < 0) grandTotal = 0;
+    document.getElementById('pos-grand-total').textContent = formatRp(grandTotal);
+    document.getElementById('pos-discount-hidden').value = diskon;
+    document.getElementById('pos-submit').innerHTML = '<i class="fas fa-check"></i> BAYAR ' + formatRp(grandTotal);
+    hitungKembali();
+}
 
-    document.getElementById('pos-submit').disabled = !accountEl.value || Object.keys(cart).length === 0;
+function syncForm() {
+    document.getElementById('pos-account').value = document.getElementById('pos-account-select').value;
+    document.getElementById('pos-date').value = document.getElementById('pos-date-input').value;
+    document.getElementById('pos-submit').disabled = !document.getElementById('pos-account-select').value || Object.keys(cart).length === 0;
 }
 
 // Product grid click
 document.getElementById('pos-product-grid').addEventListener('click', function (e) {
-    var btn = e.target.closest('.pos-product-btn');
-    if (!btn || btn.disabled) return;
-    addToCart(parseInt(btn.dataset.id), btn.dataset.name, parseInt(btn.dataset.price), btn.dataset.unit, parseInt(btn.dataset.stock));
+    var card = e.target.closest('.pos-product-card');
+    if (!card || card.classList.contains('pos-out-of-stock')) return;
+    addToCart(parseInt(card.dataset.id), card.dataset.name, parseInt(card.dataset.price), card.dataset.unit, parseInt(card.dataset.stock));
 });
 
-// Cart events via delegation
-document.getElementById('pos-cart').addEventListener('click', function (e) {
+// Cart events
+document.getElementById('pos-cart-body').addEventListener('click', function (e) {
     var target = e.target.closest('button');
     if (!target) return;
     if (target.classList.contains('pos-qty-plus')) updateQty(parseInt(target.dataset.id), 1);
@@ -307,12 +813,30 @@ document.getElementById('pos-cart').addEventListener('click', function (e) {
 
 // Bayar input
 document.getElementById('pos-bayar').addEventListener('input', hitungKembali);
+document.getElementById('pos-diskon').addEventListener('input', updateGrandTotal);
 
-// Category filter
-document.getElementById('pos-category-filter').addEventListener('change', function () {
-    var cat = this.value;
-    document.querySelectorAll('.pos-product-item').forEach(function (el) {
+// Category tabs
+document.getElementById('pos-category-tabs').addEventListener('click', function (e) {
+    var tab = e.target.closest('.pos-cat-tab');
+    if (!tab) return;
+
+    document.querySelectorAll('.pos-cat-tab').forEach(function (t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+
+    var cat = tab.dataset.cat;
+    document.querySelectorAll('.pos-product-card').forEach(function (el) {
         el.style.display = (!cat || el.dataset.category === cat) ? '' : 'none';
+    });
+});
+
+// Search
+document.getElementById('pos-search').addEventListener('input', function () {
+    var q = this.value.toLowerCase();
+    document.querySelectorAll('.pos-product-card').forEach(function (el) {
+        var match = el.dataset.name.toLowerCase().includes(q);
+        var catActive = document.querySelector('.pos-cat-tab.active');
+        var catMatch = !catActive || !catActive.dataset.cat || el.dataset.category === catActive.dataset.cat;
+        el.style.display = (match && catMatch) ? '' : 'none';
     });
 });
 
@@ -320,7 +844,7 @@ document.getElementById('pos-category-filter').addEventListener('change', functi
 document.getElementById('pos-account-select').addEventListener('change', syncForm);
 document.getElementById('pos-date-input').addEventListener('change', syncForm);
 
-// Form submit - validate
+// Form submit
 document.getElementById('formPenjualan').addEventListener('submit', function (e) {
     if (Object.keys(cart).length === 0) {
         e.preventDefault();
@@ -335,7 +859,7 @@ document.getElementById('formPenjualan').addEventListener('submit', function (e)
     syncForm();
 });
 
-// Auto-print PDF after successful submit
+// Auto-print after success
 @if(session('receipt_id'))
 document.addEventListener('DOMContentLoaded', function () {
     var r = @json(session('receipt_id'));
@@ -346,14 +870,3 @@ document.addEventListener('DOMContentLoaded', function () {
 @endif
 </script>
 @endpush
-
-<style>
-.pos-product-btn:hover {
-    border-color: var(--theme-primary);
-    background: rgba(var(--theme-primary-rgb), 0.05);
-}
-.pos-product-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-</style>

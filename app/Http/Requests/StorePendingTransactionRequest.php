@@ -17,7 +17,12 @@ class StorePendingTransactionRequest extends FormRequest
             'type' => [
                 'required',
                 'string',
-                'in:edc,qris,transfer,other',
+                'in:edc,transfer',
+            ],
+            'bank_type' => [
+                'nullable',
+                'string',
+                'in:bca,non_bca',
             ],
             'description' => [
                 'required',
@@ -52,6 +57,7 @@ class StorePendingTransactionRequest extends FormRequest
     {
         return [
             'type' => 'Tipe',
+            'bank_type' => 'Tipe Bank',
             'description' => 'Deskripsi',
             'amount' => 'Nominal',
             'pending_date' => 'Tanggal',

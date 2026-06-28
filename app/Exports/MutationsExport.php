@@ -27,7 +27,7 @@ class MutationsExport implements FromCollection, WithHeadings, WithMapping
             $query->whereDate('date', '<=', $this->filters['date_to']);
         }
         if (!empty($this->filters['search'])) {
-            $s = $this->filters['search'];
+            $s = addcslashes($this->filters['search'], '%_');
             $query->where(function ($q) use ($s) {
                 $q->where('description', 'like', "%{$s}%");
             });

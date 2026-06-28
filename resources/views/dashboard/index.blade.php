@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div class="d-flex gap-2 dashboard-actions">
+    <div class="d-flex gap-2 flex-wrap dashboard-actions">
         <button type="button" class="btn btn-modern btn-success" data-bs-toggle="modal" data-bs-target="#modalCepatPendapatan">
             <i class="fas fa-plus me-1"></i>Pendapatan
         </button>
@@ -35,7 +35,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">TOTAL EQUITY</p>
+                        <p class="text-muted small fw-semibold mb-1" style="font-size:0.75rem;letter-spacing:0.03em;">TOTAL EKUITAS</p>
                         <h4 class="fw-bold mb-0">{{ rp($totalEquity) }}</h4>
                     </div>
                     <div class="rounded-3 p-2" style="background:#eff6ff;">
@@ -155,11 +155,11 @@
     </div>
 </div>
 
-@php $bs = $billSummary; @endphp
-@if($bs['total'] > 0)
 <div class="row g-3 mb-4">
-    <div class="col-12">
-        <div class="card card-modern shadow-sm">
+    @php $bs = $billSummary; @endphp
+    @if($bs['total'] > 0)
+    <div class="col-lg-4">
+        <div class="card card-modern shadow-sm h-100">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <div>
                     <i class="fas fa-file-invoice me-2" style="color:#8b5cf6;"></i>
@@ -173,7 +173,7 @@
             <div class="card-body py-2">
                 <div class="row g-2">
                     @foreach($bs['bills'] as $bill)
-                    <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="col-lg-6">
                         <div class="d-flex align-items-center gap-2 p-2 rounded-3 {{ $bill->is_paid ? 'bg-success bg-opacity-10' : '' }}" style="{{ !$bill->is_paid ? 'background:rgba(255,255,255,0.03);' : '' }}">
                             @if($bill->is_paid)
                             <i class="fas fa-check-circle text-success"></i>
@@ -182,7 +182,64 @@
                             @endif
                             <div class="small">
                                 <div class="fw-semibold" style="font-size:0.8rem;">{{ $bill->name }}</div>
-                                <div class="text-muted" style="font-size:0.7rem;">{{ rp($bill->payment->amount ?? $bill->amount) }}</div>
+                                <div class="text-muted" style="font-size:0.7rem;">{{ rp($bill->payment?->amount ?? $bill->amount) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <div class="col-lg-4">
+        <div class="card card-modern shadow-sm h-100">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-chart-line me-2" style="color:var(--theme-primary);"></i>
+                <span class="fw-semibold">Tren 6 Bulan</span>
+            </div>
+            <div class="card-body p-2">
+                <div style="height:180px;"><canvas id="chartTren"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-{{ $bs['total'] > 0 ? '4' : '8' }}">
+        <div class="card card-modern shadow-sm h-100">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-chart-pie me-2" style="color:#f59e0b;"></i>
+                <span class="fw-semibold">Biaya per Kategori</span>
+            </div>
+            <div class="card-body p-2 text-center">
+                <div style="height:180px;max-width:280px;margin:0 auto;"><canvas id="chartPie"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if($expiringProducts->isNotEmpty())
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card card-modern shadow-sm" style="border-left: 4px solid #f59e0b;">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="fas fa-clock me-2" style="color:#f59e0b;"></i>
+                    <span class="fw-semibold">Kartu Perdana Hampir Expired</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning ms-2" style="font-size:0.65rem;">
+                        {{ $expiringProducts->count() }} batch
+                    </span>
+                </div>
+            </div>
+            <div class="card-body py-2">
+                <div class="row g-2">
+                    @foreach($expiringProducts as $trx)
+                    <div class="col-lg-3 col-md-4 col-sm-6">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:rgba(245,158,11,0.05);">
+                            <i class="fas fa-exclamation-triangle" style="color:#f59e0b;font-size:0.85rem;"></i>
+                            <div class="small">
+                                <div class="fw-semibold" style="font-size:0.8rem;">{{ $trx->product->name ?? '-' }}</div>
+                                <div class="text-muted" style="font-size:0.7rem;">Expired: {{ $trx->expired_at->format('d M Y') }} ({{ $trx->qty }} pcs)</div>
                             </div>
                         </div>
                     </div>
@@ -195,8 +252,8 @@
 @endif
 
 <div class="row g-3">
-    <div class="col-lg-4">
-        <div class="card card-modern shadow-sm">
+    <div class="col-lg-6">
+        <div class="card card-modern shadow-sm h-100">
             <div class="card-header d-flex align-items-center">
                 <i class="fas fa-wallet me-2" style="color:var(--theme-primary);"></i>
                 <span class="fw-semibold">Saldo Digital</span>
@@ -217,8 +274,8 @@
                                 @php $totalSaldo += $account->balance; @endphp
                                 <tr>
                                     <td class="ps-3">{{ $account->name }}</td>
-                                    <td class="text-end pe-3 fw-semibold {{ in_array($account->type, ['ewallet','ppob']) && $account->balance < 250000 ? 'text-danger' : '' }}">
-                                        @if(in_array($account->type, ['ewallet','ppob']) && $account->balance < 250000)
+                                    <td class="text-end pe-3 fw-semibold {{ in_array($account->type, ['ewallet','ppob']) && $account->balance < config('accounts.low_balance_threshold') ? 'text-danger' : '' }}">
+                                        @if(in_array($account->type, ['ewallet','ppob']) && $account->balance < config('accounts.low_balance_threshold'))
                                         <i class="fas fa-exclamation-triangle me-1"></i>
                                         @endif
                                         {{ rp($account->balance) }}
@@ -236,19 +293,8 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-6">
         <div class="card card-modern shadow-sm h-100">
-            <div class="card-header d-flex align-items-center">
-                <i class="fas fa-chart-line me-2" style="color:var(--theme-primary);"></i>
-                <span class="fw-semibold">Tren 6 Bulan</span>
-            </div>
-            <div class="card-body d-flex align-items-center">
-                <canvas id="chartTren" height="160"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="card card-modern shadow-sm">
             <div class="card-header d-flex align-items-center">
                 <i class="fas fa-chart-area me-2" style="color:#f59e0b;"></i>
                 <span class="fw-semibold">Profit 7 Hari</span>
@@ -266,15 +312,15 @@
                     </thead>
                     <tbody>
                         @php
-                            $totalOmset = 0;
-                            $totalExpense = 0;
-                            $totalProfit = 0;
+                            $dailyOmset = 0;
+                            $dailyExpense = 0;
+                            $dailyProfit = 0;
                         @endphp
                         @foreach($dailyProfits as $day)
                             @php
-                                $totalOmset += $day['income'];
-                                $totalExpense += $day['expense'];
-                                $totalProfit += $day['profit'];
+                                $dailyOmset += $day['income'];
+                                $dailyExpense += $day['expense'];
+                                $dailyProfit += $day['profit'];
                             @endphp
                         <tr>
                             <td class="ps-3">{{ \Carbon\Carbon::parse($day['date'])->isoFormat('D MMM') }}</td>
@@ -287,10 +333,10 @@
                         @endforeach
                         <tr style="background:var(--border-subtle); font-weight:700;">
                             <td class="ps-3">Total</td>
-                            <td class="text-end">{{ rp($totalOmset) }}</td>
-                            <td class="text-end">{{ rp($totalExpense) }}</td>
-                            <td class="text-end pe-3" style="color:{{ $totalProfit >= 0 ? '#10b981' : '#ef4444' }};">
-                                {{ $totalProfit >= 0 ? '+' : '' }}{{ rp($totalProfit) }}
+                            <td class="text-end">{{ rp($dailyOmset) }}</td>
+                            <td class="text-end">{{ rp($dailyExpense) }}</td>
+                            <td class="text-end pe-3" style="color:{{ $dailyProfit >= 0 ? '#10b981' : '#ef4444' }};">
+                                {{ $dailyProfit >= 0 ? '+' : '' }}{{ rp($dailyProfit) }}
                             </td>
                         </tr>
                     </tbody>
@@ -416,22 +462,24 @@
                     <select name="from_account_id" id="dash-mutation-from" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accountList as $account)
-                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        <option value="{{ $account->id }}" data-balance="{{ $accountBalances[$account->id] ?? 0 }}">{{ $account->name }}</option>
                         @endforeach
                     </select>
+                    <small id="dash-from-balance" class="text-muted" style="font-size:0.8rem;">Saldo: -</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Ke Akun</label>
                     <select name="to_account_id" id="dash-mutation-to" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accountList as $account)
-                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        <option value="{{ $account->id }}" data-balance="{{ $accountBalances[$account->id] ?? 0 }}">{{ $account->name }}</option>
                         @endforeach
                     </select>
+                    <small id="dash-to-balance" class="text-muted" style="font-size:0.8rem;">Saldo: -</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Nominal</label>
-                    <input type="number" step="1" name="amount" class="form-control" required>
+                    <input type="number" step="1" name="amount" id="dash-mutation-amount" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Keterangan</label>
@@ -459,10 +507,6 @@
                 <div class="mb-3">
                     <label class="form-label">Nama Pelanggan</label>
                     <input type="text" name="name" class="form-control" required placeholder="Nama pelanggan">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">No. HP</label>
-                    <input type="text" name="phone" class="form-control" placeholder="Opsional, untuk kirim WA">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Nominal Piutang</label>
@@ -512,7 +556,9 @@
                     <select name="account_id" id="akun-bayar-dash" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accountList as $account)
+                        @if($account->type !== 'ppob')
                         <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endif
                         @endforeach
                     </select>
                 </div>
@@ -627,6 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         labels: { color: '#64748b', font: { size: 12 } },
@@ -706,23 +753,39 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('stok-total-dash').value = 'Rp ' + (qty * price).toLocaleString('id-ID');
     };
 
-    // Fungsi dropdown exclusion untuk modalTambahMutasi
+    // Fungsi dropdown exclusion + saldo untuk modalTambahMutasi
     var dashFrom = document.getElementById('dash-mutation-from');
     var dashTo = document.getElementById('dash-mutation-to');
+    var dashAmount = document.getElementById('dash-mutation-amount');
+    
+    function updateDashBalance() {
+        function show(el, opt, mode) {
+            var balance = opt && opt.value !== '' ? parseInt(opt.dataset.balance || 0) : null;
+            var nominal = dashAmount ? parseInt(dashAmount.value) || 0 : 0;
+            if (balance === null) { el.textContent = 'Saldo: -'; return; }
+            if (nominal > 0) {
+                var p = mode === 'from' ? balance - nominal : balance + nominal;
+                el.textContent = 'Saldo: Rp ' + balance.toLocaleString('id-ID') + ' \u2192 Rp ' + p.toLocaleString('id-ID');
+            } else {
+                el.textContent = 'Saldo: Rp ' + balance.toLocaleString('id-ID');
+            }
+        }
+        var fOpt = dashFrom ? dashFrom.options[dashFrom.selectedIndex] : null;
+        var tOpt = dashTo ? dashTo.options[dashTo.selectedIndex] : null;
+        var fEl = document.getElementById('dash-from-balance');
+        var tEl = document.getElementById('dash-to-balance');
+        if (fEl) show(fEl, fOpt, 'from');
+        if (tEl) show(tEl, tOpt, 'to');
+    }
     
     if (dashFrom) {
         dashFrom.addEventListener('change', function() {
             var selected = this.value;
             dashTo.querySelectorAll('option').forEach(function(opt) {
-                if (opt.value === selected || opt.value === '') {
-                    opt.style.display = 'none';
-                } else {
-                    opt.style.display = '';
-                }
+                opt.style.display = (opt.value === selected || opt.value === '') ? 'none' : '';
             });
-            if (dashTo.value === selected) {
-                dashTo.value = '';
-            }
+            if (dashTo.value === selected) dashTo.value = '';
+            updateDashBalance();
         });
     }
     
@@ -730,16 +793,15 @@ document.addEventListener('DOMContentLoaded', function () {
         dashTo.addEventListener('change', function() {
             var selected = this.value;
             dashFrom.querySelectorAll('option').forEach(function(opt) {
-                if (opt.value === selected || opt.value === '') {
-                    opt.style.display = 'none';
-                } else {
-                    opt.style.display = '';
-                }
+                opt.style.display = (opt.value === selected || opt.value === '') ? 'none' : '';
             });
-            if (dashFrom.value === selected) {
-                dashFrom.value = '';
-            }
+            if (dashFrom.value === selected) dashFrom.value = '';
+            updateDashBalance();
         });
+    }
+    
+    if (dashAmount) {
+        dashAmount.addEventListener('input', updateDashBalance);
     }
 });
 </script>

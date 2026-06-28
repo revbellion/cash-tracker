@@ -28,6 +28,7 @@ class ExpenseController extends Controller
             'accounts' => Account::active()->get(),
             'categories' => $this->expenseService->getCategories(),
             'totalAmount' => $result['totalAmount'],
+            'typeFilter' => $filters['type'] ?? null,
         ]);
     }
 
@@ -73,6 +74,21 @@ class ExpenseController extends Controller
         }
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+        $deleted = 0;
+        foreach ($request->ids as $id) {
+            try {
+                $this->expenseService->delete($id);
+                $deleted++;
+            } catch (\Exception $e) {
+                // skip
+            }
+        }
+        return redirect()->back()->with('success', "{$deleted} data berhasil dihapus.");
+    }
+
     public function export(Request $request)
     {
         $filters = $this->parseFilters($request);
@@ -82,7 +98,7 @@ class ExpenseController extends Controller
 
     private function parseFilters(Request $request): array
     {
-        $raw = $request->only(['date_from', 'date_to', 'category', 'search']);
+        $raw = $request->only(['date_from', 'date_to', 'category', 'search', 'type']);
         $raw = array_map(fn($v) => $v === '' ? null : $v, $raw);
 
         return array_filter(
@@ -91,6 +107,7 @@ class ExpenseController extends Controller
                 'date_to' => 'nullable|date',
                 'category' => 'nullable|string|max:100',
                 'search' => 'nullable|string|max:100',
+                'type' => 'nullable|in:real,cash_movement',
             ])->valid(),
             fn($v) => $v !== null
         );

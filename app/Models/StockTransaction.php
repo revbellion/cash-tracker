@@ -8,14 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StockTransaction extends Model
 {
     protected $fillable = [
-        'product_id', 'type', 'qty', 'price', 'account_id',
-        'description', 'date', 'income_id', 'receipt_id',
+        'product_id', 'type', 'qty', 'remaining_qty', 'price', 'account_id',
+        'description', 'date', 'expired_at', 'income_id', 'receipt_id',
     ];
 
     protected function casts(): array
     {
         return [
             'date' => 'datetime',
+            'expired_at' => 'datetime',
         ];
     }
 

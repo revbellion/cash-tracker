@@ -30,7 +30,7 @@ class ExpensesExport implements FromCollection, WithHeadings, WithMapping
             $query->where('category', $this->filters['category']);
         }
         if (!empty($this->filters['search'])) {
-            $s = $this->filters['search'];
+            $s = addcslashes($this->filters['search'], '%_');
             $query->where(function ($q) use ($s) {
                 $q->where('description', 'like', "%{$s}%")
                   ->orWhere('category', 'like', "%{$s}%");
@@ -49,7 +49,7 @@ class ExpensesExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             $row->date->format('d/m/Y'),
-            $row->account->name ?? '-',
+            $row->account?->name ?? '-',
             $row->category ?? '-',
             $row->amount,
             $row->description ?? '-',

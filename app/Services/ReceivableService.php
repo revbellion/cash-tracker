@@ -16,11 +16,24 @@ class ReceivableService
         $now = Carbon::now();
         $parsedDate = Carbon::parse($data['date']);
         $data['date'] = $parsedDate->format('Y-m-d') . ' ' . $now->format('H:i:s');
-        $data['due_date'] = $parsedDate->copy()->addDays(3);
+        $data['due_date'] = $parsedDate->copy()->addDays(3)->setTimeFrom($now);
         $data['status'] = 'unpaid';
 
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $now) {
             $receivable = Receivable::create($data);
+
+            // Buat Expense: kasih pinjaman ke customer
+            $expense = Expense::create([
+                'account_id'     => $data['account_id'] ?? $this->resolveCashAccountId(),
+                'category'       => 'Piutang',
+                'amount'         => $data['amount'],
+                'description'    => "Piutang {$data['name']}",
+                'date'           => $data['date'],
+                'receivable_id'  => $receivable->id,
+            ]);
+
+            $receivable->update(['expense_id' => $expense->id]);
+
             return $receivable;
         });
     }
@@ -28,7 +41,7 @@ class ReceivableService
     public function update(int $id, array $data): Receivable
     {
         return DB::transaction(function () use ($id, $data) {
-            $receivable = Receivable::findOrFail($id);
+            $receivable = Receivable::lockForUpdate()->findOrFail($id);
 
             if ($receivable->status !== 'unpaid') {
                 throw new \DomainException('Hanya piutang unpaid yang bisa diedit.');
@@ -41,9 +54,14 @@ class ReceivableService
             $now = Carbon::now();
             $parsedDate = Carbon::parse($data['date']);
             $data['date'] = $parsedDate->format('Y-m-d') . ' ' . $now->format('H:i:s');
-            $data['due_date'] = $parsedDate->copy()->addDays(3);
+            $data['due_date'] = $parsedDate->copy()->addDays(3)->setTimeFrom($now);
 
             $receivable->update($data);
+
+            // Sync Expense jika jumlah berubah
+            if ($receivable->expense_id && isset($data['amount'])) {
+                Expense::where('id', $receivable->expense_id)->update(['amount' => $data['amount']]);
+            }
 
             return $receivable;
         });
@@ -52,7 +70,11 @@ class ReceivableService
     public function pay(int $receivableId, array $data): ReceivablePayment
     {
         return DB::transaction(function () use ($receivableId, $data) {
-            $receivable = Receivable::findOrFail($receivableId);
+            $receivable = Receivable::lockForUpdate()->findOrFail($receivableId);
+
+            if ($receivable->status !== 'unpaid') {
+                throw new \DomainException('Hanya piutang unpaid yang bisa dibayar.');
+            }
 
             $now = Carbon::now();
             $paymentDate = !empty($data['date'])
@@ -72,21 +94,75 @@ class ReceivableService
                 'date' => $paymentDate,
             ]);
 
+            // Buat Income untuk setiap pembayaran (termasuk parsial)
+            $income = \App\Models\Income::create([
+                'account_id'    => $data['account_id'],
+                'amount'        => $data['amount'],
+                'category'      => 'Piutang',
+                'description'   => "Pembayaran piutang {$receivable->name} (#{$receivable->id})",
+                'date'          => $paymentDate,
+                'receivable_id' => $receivable->id,
+            ]);
+
             $totalPaid = $receivable->receivablePayments()->sum('amount');
 
             if ($totalPaid >= $receivable->amount) {
-                $receivable->update(['status' => 'paid']);
+                $receivable->update(['status' => 'paid', 'income_id' => $income->id]);
             }
 
             return $payment;
         });
     }
 
+    public function void(int $id): Receivable
+    {
+        return DB::transaction(function () use ($id) {
+            $receivable = Receivable::lockForUpdate()->findOrFail($id);
+
+            if ($receivable->status !== 'unpaid') {
+                throw new \DomainException('Hanya piutang berstatus unpaid yang bisa dibatalkan.');
+            }
+
+            // Hapus Expense terkait (cash keluar pas buat piutang)
+            if ($receivable->expense_id) {
+                Expense::where('id', $receivable->expense_id)->delete();
+            }
+
+            $receivable->update([
+                'status' => 'voided',
+                'expense_id' => null,
+            ]);
+
+            return $receivable;
+        });
+    }
+
     public function delete(int $id): bool
     {
         return DB::transaction(function () use ($id) {
-            $receivable = Receivable::findOrFail($id);
+            $receivable = Receivable::lockForUpdate()->findOrFail($id);
+
+            if ($receivable->status === 'paid') {
+                throw new \DomainException('Piutang yang sudah lunas tidak bisa dihapus.');
+            }
+
+            // Hapus Expense terkait
+            if ($receivable->expense_id) {
+                Expense::where('id', $receivable->expense_id)->delete();
+            }
+
+            // Hapus semua Income terkait pembayaran
+            $paymentCount = $receivable->receivablePayments()->count();
+            if ($paymentCount > 0) {
+                \App\Models\Income::where('category', 'Piutang')
+                    ->where('receivable_id', $receivable->id)
+                    ->delete();
+            }
+
+            // Hapus payments
             $receivable->receivablePayments()->delete();
+
+            // Hapus receivable
             return $receivable->delete();
         });
     }
@@ -113,7 +189,7 @@ class ReceivableService
         }
 
         if (!empty($filters['search'])) {
-            $s = $filters['search'];
+            $s = addcslashes($filters['search'], '%_');
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                   ->orWhere('phone', 'like', "%{$s}%");
@@ -127,33 +203,6 @@ class ReceivableService
         $receivables = $query->with('receivablePayments')->latest()->paginate(20);
 
         return compact('receivables', 'totalAmount', 'totalRemaining');
-    }
-
-    public function generateWhatsAppLink(Receivable $receivable): string
-    {
-        $today = Carbon::now()->startOfDay();
-        $due = $receivable->due_date->startOfDay();
-        $diffDays = $today->diffInDays($due, false);
-
-        if ($diffDays > 0) {
-            $text = sprintf(
-                "Halo %s, hutang Rp %s sudah telat %d hari. Mohon segera dibayar ya.",
-                $receivable->name,
-                number_format($receivable->amount, 0, ',', '.'),
-                $diffDays
-            );
-        } else {
-            $text = sprintf(
-                "Halo %s, ini pengingat untuk hutang Rp %s yang jatuh tempo %s. Mohon segera dibayar ya.",
-                $receivable->name,
-                number_format($receivable->amount, 0, ',', '.'),
-                $receivable->due_date->format('d/m/Y')
-            );
-        }
-
-        $phone = preg_replace('/[^0-9]/', '', ltrim((string) $receivable->phone, '+'));
-
-        return 'https://wa.me/' . $phone . '?text=' . urlencode($text);
     }
 
     private function resolveCashAccountId(): int

@@ -17,11 +17,13 @@ class SummaryController extends Controller
         $startDate = Carbon::now()->subMonths($months - 1)->startOfMonth();
 
         $allIncomes = Income::whereBetween('date', [$startDate, $endDate])
+            ->whereNotIn('category', ['Piutang', 'Stok Opname Plus'])
             ->selectRaw('YEAR(date) as y, MONTH(date) as m, COALESCE(category, "Tanpa Kategori") as cat, SUM(amount) as total')
             ->groupBy('y', 'm', 'cat')
             ->get();
 
         $allExpenses = Expense::whereBetween('date', [$startDate, $endDate])
+            ->whereNotIn('category', ['Piutang', 'Stok Opname Minus'])
             ->selectRaw('YEAR(date) as y, MONTH(date) as m, COALESCE(category, "Tanpa Kategori") as cat, SUM(amount) as total')
             ->groupBy('y', 'm', 'cat')
             ->get();

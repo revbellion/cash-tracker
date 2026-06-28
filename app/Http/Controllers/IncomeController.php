@@ -27,6 +27,7 @@ class IncomeController extends Controller
             'categories' => $this->incomeService->getCategories(),
             'accounts' => Account::active()->get(),
             'totalAmount' => $result['totalAmount'],
+            'typeFilter' => $filters['type'] ?? null,
         ]);
     }
 
@@ -60,6 +61,29 @@ class IncomeController extends Controller
         }
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+        $deleted = 0;
+        $failed = 0;
+        $errors = [];
+        foreach ($request->ids as $id) {
+            try {
+                $this->incomeService->delete($id);
+                $deleted++;
+            } catch (\Exception $e) {
+                $failed++;
+                $errors[] = $e->getMessage();
+            }
+        }
+        $msg = "{$deleted} data berhasil dihapus.";
+        if ($failed > 0) {
+            $msg .= " {$failed} data gagal dihapus.";
+            return redirect()->back()->with('warning', $msg);
+        }
+        return redirect()->back()->with('success', $msg);
+    }
+
     public function export(Request $request)
     {
         $filters = $this->parseFilters($request);
@@ -69,7 +93,7 @@ class IncomeController extends Controller
 
     private function parseFilters(Request $request): array
     {
-        $raw = $request->only(['date_from', 'date_to', 'category', 'search']);
+        $raw = $request->only(['date_from', 'date_to', 'category', 'search', 'type']);
         $raw = array_map(fn($v) => $v === '' ? null : $v, $raw);
 
         return array_filter(
@@ -78,6 +102,7 @@ class IncomeController extends Controller
                 'date_to' => 'nullable|date',
                 'category' => 'nullable|string|max:100',
                 'search' => 'nullable|string|max:100',
+                'type' => 'nullable|in:real,cash_movement',
             ])->valid(),
             fn($v) => $v !== null
         );

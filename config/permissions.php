@@ -15,5 +15,11 @@ return [
     'POS' => 'pos',
     'STOCK_OPNAME' => 'stock_opname',
     'STOCK_REPORT' => 'stock_report',
+    'SALES_REPORT' => 'sales_report',
     'ACCOUNTS' => 'accounts',
+    'CUSTOMERS' => 'customers',
+    'REPORTS' => 'reports',
+    'RETURNS' => 'returns',
+    'PRINT_ORDERS' => 'print_orders',
+    'REPAIR_SERVICES' => 'repair_services',
 ];

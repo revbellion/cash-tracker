@@ -11,9 +11,11 @@ class Income extends Model
         'account_id',
         'date',
         'amount',
+        'discount',
         'description',
         'category',
         'stock_transaction_id',
+        'receivable_id',
     ];
 
     protected function casts(): array
@@ -32,5 +34,10 @@ class Income extends Model
     public function stockTransaction(): BelongsTo
     {
         return $this->belongsTo(StockTransaction::class);
+    }
+
+    public function receivable(): BelongsTo
+    {
+        return $this->belongsTo(Receivable::class);
     }
 }

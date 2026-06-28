@@ -69,8 +69,18 @@
             </tr>
             @endforeach
             <tr class="total-row">
-                <td colspan="3"><strong>Total</strong></td>
+                <td colspan="3"><strong>Subtotal</strong></td>
                 <td class="price"><strong>{{ number_format($receipt->total, 0, ',', '.') }}</strong></td>
+            </tr>
+            @if(($receipt->income->discount ?? 0) > 0)
+            <tr>
+                <td colspan="3">Diskon</td>
+                <td class="price">-{{ number_format($receipt->income->discount, 0, ',', '.') }}</td>
+            </tr>
+            @endif
+            <tr class="total-row">
+                <td colspan="3"><strong>Total</strong></td>
+                <td class="price"><strong>{{ number_format($receipt->income->amount ?? $receipt->total, 0, ',', '.') }}</strong></td>
             </tr>
             <tr>
                 <td colspan="3">Tunai</td>

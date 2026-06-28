@@ -3,15 +3,21 @@
 namespace App\Services;
 
 use App\Models\Income;
-use Carbon\Carbon;
+use App\Models\StockTransaction;
 use Illuminate\Support\Facades\DB;
 
 class IncomeService
 {
+    private array $cashMovementCategories = [
+        'Piutang', 'Transfer Masuk', 'Pending EDC',
+    ];
+
+    private array $systemCategories = [
+        'Piutang', 'Penjualan', 'Transfer Masuk', 'Stok Opname Plus', 'Penyesuaian Kas', 'Pending EDC', 'Jasa Cetak', 'Jasa Servis',
+    ];
+
     public function create(array $data): Income
     {
-        $data['date'] = Carbon::parse($data['date'])->format('Y-m-d') . ' ' . now()->format('H:i:s');
-
         return DB::transaction(function () use ($data) {
             return Income::create($data);
         });
@@ -19,10 +25,13 @@ class IncomeService
 
     public function update(int $id, array $data): Income
     {
-        $data['date'] = Carbon::parse($data['date'])->format('Y-m-d') . ' ' . now()->format('H:i:s');
-
         return DB::transaction(function () use ($id, $data) {
             $income = Income::findOrFail($id);
+
+            if (in_array($income->category, $this->systemCategories)) {
+                throw new \DomainException('Pendapatan sistem tidak bisa diedit.');
+            }
+
             $income->update($data);
             return $income;
         });
@@ -31,7 +40,18 @@ class IncomeService
     public function delete(int $id): bool
     {
         return DB::transaction(function () use ($id) {
-            return Income::findOrFail($id)->delete();
+            $income = Income::findOrFail($id);
+
+            if (in_array($income->category, $this->systemCategories)) {
+                throw new \DomainException('Pendapatan sistem tidak bisa dihapus.');
+            }
+
+            if ($income->stock_transaction_id !== null) {
+                throw new \DomainException('Pendapatan ini terkait transaksi stok dan tidak bisa dihapus.');
+            }
+
+            $income->delete();
+            return true;
         });
     }
 
@@ -51,8 +71,20 @@ class IncomeService
             $query->where('category', $filters['category']);
         }
 
+        if (!empty($filters['type'])) {
+            if ($filters['type'] === 'real') {
+                $query->whereNotIn('category', $this->cashMovementCategories)
+                      ->where('category', 'not like', 'Pending %');
+            } elseif ($filters['type'] === 'cash_movement') {
+                $query->where(function ($q) {
+                    $q->whereIn('category', $this->cashMovementCategories)
+                      ->orWhere('category', 'like', 'Pending %');
+                });
+            }
+        }
+
         if (!empty($filters['search'])) {
-            $s = $filters['search'];
+            $s = addcslashes($filters['search'], '%_');
             $query->where(function ($q) use ($s) {
                 $q->where('description', 'like', "%{$s}%")
                   ->orWhere('category', 'like', "%{$s}%");

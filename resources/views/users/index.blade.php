@@ -11,22 +11,41 @@
     </a>
 </div>
 
+<div class="bulk-action-bar mb-3 d-none" id="bulkActionBar">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:rgba(var(--theme-primary-rgb),0.08);border:1px solid rgba(var(--theme-primary-rgb),0.2);">
+        <span class="fw-semibold" style="font-size:0.85rem;"><span id="bulkCount">0</span> dipilih</span>
+        <span class="fw-bold" style="font-size:0.85rem;color:var(--theme-primary);" id="bulkTotal"></span>
+        <form autocomplete="off" id="bulkDeleteForm" method="POST" action="{{ route('users.bulk-delete') }}" style="display:inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus data yang dipilih?').then(ok => ok && this.closest('form').submit());">
+                <i class="fas fa-trash me-1"></i>Hapus
+            </button>
+        </form>
+        <button type="button" class="btn btn-modern btn-secondary btn-sm" onclick="clearBulkSelection()">
+            <i class="fas fa-times me-1"></i>Batal
+        </button>
+    </div>
+</div>
+
 <div class="card card-modern">
     <div class="card-body p-0">
         <div class="table-responsive">
         <table class="table table-modern mb-0">
             <thead>
                 <tr>
-                    <th>Username</th>
-                    <th>Nama</th>
-                    <th>Tipe</th>
-                    <th>Akses</th>
+                    <th class="ps-3" style="width:40px;"><input type="checkbox" class="form-check-input bulk-select-all"></th>
+                    <th class="sortable" data-sort="string">Username</th>
+                    <th class="sortable" data-sort="string">Nama</th>
+                    <th class="sortable" data-sort="string">Tipe</th>
+                    <th class="sortable" data-sort="string">Akses</th>
                     <th class="text-end">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($users as $user)
                     <tr>
+                        <td class="ps-3"><input type="checkbox" class="form-check-input bulk-select-item" value="{{ $user->id }}"></td>
                         <td class="fw-semibold">{{ $user->username }}</td>
                         <td>{{ $user->name }}</td>
                         <td>
@@ -61,7 +80,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-center text-muted py-4">Belum ada user.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Belum ada user.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -75,3 +94,53 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+// Bulk selection
+document.querySelector('.bulk-select-all')?.addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateBulkBar();
+});
+
+document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+function updateBulkBar() {
+    var checked = document.querySelectorAll('.bulk-select-item:checked');
+    var count = checked.length;
+    var bar = document.getElementById('bulkActionBar');
+    if (!bar) return;
+    
+    if (count > 0) {
+        bar.classList.remove('d-none');
+        document.getElementById('bulkCount').textContent = count;
+        
+        var ids = [];
+        checked.forEach(function(cb) { ids.push(cb.value); });
+        var form = document.getElementById('bulkDeleteForm');
+        form.querySelectorAll('input[name="ids[]"]').forEach(function(el) { el.remove(); });
+        ids.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+    } else {
+        bar.classList.add('d-none');
+    }
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.bulk-select-item, .bulk-select-all').forEach(function(cb) {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+</script>
+@endpush

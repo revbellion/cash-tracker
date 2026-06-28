@@ -75,8 +75,18 @@
     <div class="divider"></div>
     <table>
         <tr>
-            <td style="width:60%;">Total</td>
+            <td style="width:60%;">Subtotal</td>
             <td class="total-value">{{ number_format($receipt->total, 0, ',', '.') }}</td>
+        </tr>
+        @if(($receipt->income->discount ?? 0) > 0)
+        <tr>
+            <td>Diskon</td>
+            <td class="total-value">-{{ number_format($receipt->income->discount, 0, ',', '.') }}</td>
+        </tr>
+        @endif
+        <tr>
+            <td style="width:60%;"><strong>Total</strong></td>
+            <td class="total-value"><strong>{{ number_format($receipt->income->amount ?? $receipt->total, 0, ',', '.') }}</strong></td>
         </tr>
         <tr>
             <td>Tunai</td>

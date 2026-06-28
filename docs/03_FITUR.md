@@ -182,6 +182,33 @@ Filter periode (month YYYY-MM, auto-submit on change)
 
 ---
 
+## Jasa Cetak (`/print-orders`)
+**Middleware:** `permission:print_orders`
+
+- Mencatat order jasa cetak: Cetak Foto, Fotokopi, Print, Jasa Ketik, Browsing/Internet
+- Input: tanggal, akun, jenis layanan, jumlah lembar, harga satuan
+- **Auto-calculate total** (quantity × price_per_unit)
+- **Auto-create Income** (kategori: "Jasa Cetak") saat simpan
+- Filter: date range, jenis layanan, search
+- Default akun: Cash, Default layanan: Print
+- Proteksi: Income kategori "Jasa Cetak" tidak bisa diedit/dihapus langsung
+
+---
+
+## Jasa Servis (`/repair-services`)
+**Middleware:** `permission:repair_services`
+
+- Mencatat service HP & Laptop
+- Input: tanggal, akun, nama pelanggan, no HP, tipe device (HP/Laptop), brand/model, keluhan
+- Biaya: Jasa + Sparepart (opsional)
+- **Auto-calculate total** (service_fee + sparepart_cost)
+- **Auto-create Income** (kategori: "Jasa Servis") saat simpan
+- Filter: date range, tipe device, search (nama/HP/model)
+- Default akun: Cash, Default device: HP
+- Proteksi: Income kategori "Jasa Servis" tidak bisa diedit/dihapus langsung
+
+---
+
 ## Modal Awal (`/opening-balances`)
 **Middleware:** `permission:accounts`
 
@@ -225,7 +252,7 @@ Filter periode (month YYYY-MM, auto-submit on change)
 **Middleware:** admin
 
 - CRUD user
-- 15 permission checkboxes
+- 20 permission checkboxes
 - Default permission (user baru): POS, Stok Masuk, Opname, Cash Counter
 - Admin (kosongkan semua) = full akses
 - Soft-delete user (bisa hapus, kecuali admin sendiri)
@@ -285,7 +312,7 @@ Filter periode (month YYYY-MM, auto-submit on change)
 
 ---
 
-## Route Summary (~67 routes)
+## Route Summary (~77 routes)
 
 ### Auth (guest)
 | Method | URI | Middleware |
@@ -351,3 +378,23 @@ Semua + export
 | Backup | `/backups` |
 | Users | `/users` |
 | Delete stock | `/stock/*/destroy` |
+
+### Jasa Cetak
+All routes: `permission:print_orders`
+| Method | URI |
+|--------|-----|
+| GET | `/print-orders` |
+| POST | `/print-orders` |
+| POST | `/print-orders/bulk-delete` |
+| PUT | `/print-orders/{print_order}` |
+| DELETE | `/print-orders/{print_order}` |
+
+### Jasa Servis
+All routes: `permission:repair_services`
+| Method | URI |
+|--------|-----|
+| GET | `/repair-services` |
+| POST | `/repair-services` |
+| POST | `/repair-services/bulk-delete` |
+| PUT | `/repair-services/{repair_service}` |
+| DELETE | `/repair-services/{repair_service}` |

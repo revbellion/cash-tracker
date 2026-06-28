@@ -18,7 +18,8 @@ class UpdateReceivableRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'phone' => ['nullable', 'string', 'max:20'],
             'amount' => ['required', 'integer', 'min:1'],
-            'date' => ['required', 'date'],
+            'date' => ['required', 'date', 'before_or_equal:today'],
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
         ];
     }
 
@@ -31,6 +32,7 @@ class UpdateReceivableRequest extends FormRequest
             'min' => ':attribute minimal :min.',
             'max' => ':attribute maksimal :max karakter.',
             'date' => ':attribute harus berupa tanggal yang valid.',
+            'customer_id.exists' => 'Pelanggan tidak ditemukan.',
         ];
     }
 
@@ -41,6 +43,7 @@ class UpdateReceivableRequest extends FormRequest
             'phone' => 'No. HP',
             'amount' => 'Total Bayar',
             'date' => 'Tanggal',
+            'customer_id' => 'Pelanggan',
         ];
     }
 }

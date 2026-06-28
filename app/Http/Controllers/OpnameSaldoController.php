@@ -30,9 +30,25 @@ class OpnameSaldoController extends Controller
         try {
             $result = $this->opnameService->processOpname($validated, $validated['date']);
 
-            return redirect()->back()->with('success', 'Opname saldo berhasil disimpan. Semua selisih sudah dimutasi ke cash.');
+            $message = 'Opname saldo berhasil disimpan.';
+            if (!empty($result['warnings'])) {
+                $message .= ' ' . implode(' ', $result['warnings']);
+                return redirect()->back()->with('warning', $message);
+            }
+
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal menyimpan opname: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $this->opnameService->delete($id);
+            return redirect()->back()->with('success', 'Riwayat opname berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus riwayat opname: ' . $e->getMessage());
         }
     }
 }

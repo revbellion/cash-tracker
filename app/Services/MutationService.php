@@ -11,6 +11,7 @@ class MutationService
     public function create(array $data): Mutation
     {
         $data['date'] = Carbon::parse($data['date'])->format('Y-m-d') . ' ' . now()->format('H:i:s');
+        $data['source'] = 'manual';
 
         return DB::transaction(function () use ($data) {
             return Mutation::create($data);
@@ -23,6 +24,11 @@ class MutationService
 
         return DB::transaction(function () use ($id, $data) {
             $mutation = Mutation::findOrFail($id);
+
+            if ($mutation->source !== 'manual') {
+                throw new \DomainException('Mutasi dari sistem tidak bisa diedit.');
+            }
+
             $mutation->update($data);
             return $mutation;
         });
@@ -31,7 +37,13 @@ class MutationService
     public function delete(int $id): bool
     {
         return DB::transaction(function () use ($id) {
-            return Mutation::findOrFail($id)->delete();
+            $mutation = Mutation::findOrFail($id);
+
+            if ($mutation->source !== 'manual') {
+                throw new \DomainException('Mutasi dari sistem tidak bisa dihapus.');
+            }
+
+            return $mutation->delete();
         });
     }
 
@@ -48,7 +60,7 @@ class MutationService
         }
 
         if (!empty($filters['search'])) {
-            $s = $filters['search'];
+            $s = addcslashes($filters['search'], '%_');
             $query->where(function ($q) use ($s) {
                 $q->where('description', 'like', "%{$s}%")
                   ->orWhereHas('fromAccount', fn($q) => $q->where('name', 'like', "%{$s}%"))

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\OpnameSaldo;
 use App\Models\Mutation;
-use App\Models\DashboardService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -55,6 +54,7 @@ class OpnameSaldoService
             ->where('account_id', $account->id)
             ->sum('amount');
 
+        // ponytail: receivable_payments sudah dihitung sebagai Income, tidak perlu ditambah lagi
         return (int) (
             $openingBalance
             + $mutationsIn
@@ -68,6 +68,7 @@ class OpnameSaldoService
     {
         return DB::transaction(function () use ($data, $date) {
             $opnameRecords = [];
+            $warnings = [];
             $cashAccountId = $this->getCashAccountId();
 
             foreach ($data['accounts'] as $accountId => $closingBalance) {
@@ -80,47 +81,80 @@ class OpnameSaldoService
                 $dateStart = Carbon::parse($date)->startOfMonth()->format('Y-m-d');
                 $dateEnd = Carbon::parse($date)->endOfMonth()->format('Y-m-d');
 
+                // Cek apakah sudah ada opname untuk akun & tanggal ini
+                $existing = OpnameSaldo::where('account_id', $accountId)
+                    ->where('opname_date', $date)
+                    ->first();
+
                 $openingBalance = $this->calculateBalance($account, $period, $dateStart, $dateEnd);
                 $closingBalance = (int) $closingBalance;
                 $difference = $openingBalance - $closingBalance;
 
-                // Simpan record opname
-                $opnameRecord = OpnameSaldo::create([
-                    'account_id' => $accountId,
-                    'opening_balance' => $openingBalance,
-                    'closing_balance' => $closingBalance,
-                    'difference' => $difference,
-                    'opname_date' => $date,
-                ]);
+                // Skip jika selisih 0 — tidak perlu disimpan
+                if ($difference == 0) {
+                    continue;
+                }
 
-                $opnameRecords[] = $opnameRecord;
+                if ($existing) {
+                    // Update: hapus mutasi lama (gunakan source + account_id + tanggal, bukan nama akun)
+                    Mutation::where('source', 'opname')
+                        ->whereDate('date', $date)
+                        ->where(function ($q) use ($accountId) {
+                            $q->where('from_account_id', $accountId)
+                              ->orWhere('to_account_id', $accountId);
+                        })
+                        ->delete();
 
-                // Buat mutasi berdasarkan selisih
-                if ($difference != 0 && $cashAccountId) {
-                    if ($difference > 0) {
-                        // Selisih positif (aktual < sistem): Mutasi dari PPOB/e-wallet ke Cash
-                        Mutation::create([
-                            'from_account_id' => $accountId,
-                            'to_account_id' => $cashAccountId,
-                            'amount' => $difference,
-                            'date' => $date . ' ' . Carbon::now()->format('H:i:s'),
-                            'description' => 'Opname saldo ' . $account->name,
-                        ]);
+                    // Update record opname
+                    $existing->update([
+                        'opening_balance' => $openingBalance,
+                        'closing_balance' => $closingBalance,
+                        'difference' => $difference,
+                    ]);
+                    $opnameRecords[] = $existing;
+                } else {
+                    // Buat baru
+                    $opnameRecord = OpnameSaldo::create([
+                        'account_id' => $accountId,
+                        'opening_balance' => $openingBalance,
+                        'closing_balance' => $closingBalance,
+                        'difference' => $difference,
+                        'opname_date' => $date,
+                    ]);
+                    $opnameRecords[] = $opnameRecord;
+                }
+
+                // Buat mutasi baru berdasarkan selisih
+                if ($difference != 0) {
+                    if (!$cashAccountId) {
+                        $warnings[] = "Akun Cash ('" . config('accounts.cash_name') . "') tidak ditemukan. Mutasi opname {$account->name} tidak dibuat.";
                     } else {
-                        // Selisih negatif (aktual > sistem): Mutasi dari Cash ke PPOB/e-wallet
-                        Mutation::create([
-                            'from_account_id' => $cashAccountId,
-                            'to_account_id' => $accountId,
-                            'amount' => abs($difference),
-                            'date' => $date . ' ' . Carbon::now()->format('H:i:s'),
-                            'description' => 'Opname saldo ' . $account->name,
-                        ]);
+                        if ($difference > 0) {
+                            Mutation::create([
+                                'from_account_id' => $accountId,
+                                'to_account_id' => $cashAccountId,
+                                'amount' => $difference,
+                                'date' => $date . ' ' . Carbon::now()->format('H:i:s'),
+                                'description' => 'Opname saldo ' . $account->name,
+                                'source' => 'opname',
+                            ]);
+                        } else {
+                            Mutation::create([
+                                'from_account_id' => $cashAccountId,
+                                'to_account_id' => $accountId,
+                                'amount' => abs($difference),
+                                'date' => $date . ' ' . Carbon::now()->format('H:i:s'),
+                                'description' => 'Opname saldo ' . $account->name,
+                                'source' => 'opname',
+                            ]);
+                        }
                     }
                 }
             }
 
             return [
                 'opname_records' => $opnameRecords,
+                'warnings' => $warnings,
             ];
         });
     }
@@ -140,5 +174,23 @@ class OpnameSaldoService
         }
 
         return $query->orderBy('opname_date', 'desc')->get();
+    }
+
+    public function delete(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            $opname = OpnameSaldo::findOrFail($id);
+
+            // Hapus mutasi spesifik untuk opname ini (gunakan source + account_id + tanggal, bukan nama akun)
+            \App\Models\Mutation::where('source', 'opname')
+                ->whereDate('date', $opname->opname_date)
+                ->where(function ($q) use ($opname) {
+                    $q->where('from_account_id', $opname->account_id)
+                      ->orWhere('to_account_id', $opname->account_id);
+                })
+                ->delete();
+
+            return $opname->delete();
+        });
     }
 }

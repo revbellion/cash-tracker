@@ -40,29 +40,43 @@
 
 <form autocomplete="off" method="GET" action="{{ route('pending.index') }}" class="row g-2 mb-4 filter-form">
     <div class="col-auto">
-        <select name="status" class="form-select form-select-sm" style="width:auto;">
+        <select name="status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
             <option value="">Semua Status</option>
             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
             <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Selesai</option>
         </select>
     </div>
     <div class="col-auto">
-        <select name="type" class="form-select form-select-sm" style="width:auto;">
+        <select name="type" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
             <option value="">Semua Tipe</option>
             <option value="edc" {{ request('type') == 'edc' ? 'selected' : '' }}>EDC</option>
-            <option value="qris" {{ request('type') == 'qris' ? 'selected' : '' }}>QRIS</option>
             <option value="transfer" {{ request('type') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-            <option value="other" {{ request('type') == 'other' ? 'selected' : '' }}>Lainnya</option>
         </select>
     </div>
     <div class="col-auto">
-        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari deskripsi..." style="width:150px;">
+        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari deskripsi..." style="width:150px;" oninput=" clearTimeout(this._timer); this._timer=setTimeout(()=>this.form.submit(),500)">
     </div>
     <div class="col-auto">
-        <button type="submit" class="btn btn-modern btn-primary btn-sm"><i class="fas fa-search me-1"></i>Cari</button>
         <a href="{{ route('pending.index') }}" class="btn btn-modern btn-secondary btn-sm"><i class="fas fa-times me-1"></i>Reset</a>
     </div>
 </form>
+
+<div class="bulk-action-bar mb-3 d-none" id="bulkActionBar">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:rgba(var(--theme-primary-rgb),0.08);border:1px solid rgba(var(--theme-primary-rgb),0.2);">
+        <span class="fw-semibold" style="font-size:0.85rem;"><span id="bulkCount">0</span> dipilih</span>
+        <span class="fw-bold" style="font-size:0.85rem;color:var(--theme-primary);" id="bulkTotal"></span>
+        <form autocomplete="off" id="bulkDeleteForm" method="POST" action="{{ route('pending.bulk-delete') }}" style="display:inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus data yang dipilih?').then(ok => ok && this.closest('form').submit());">
+                <i class="fas fa-trash me-1"></i>Hapus
+            </button>
+        </form>
+        <button type="button" class="btn btn-modern btn-secondary btn-sm" onclick="clearBulkSelection()">
+            <i class="fas fa-times me-1"></i>Batal
+        </button>
+    </div>
+</div>
 
 <div class="card card-modern shadow-sm">
     <div class="card-body p-0">
@@ -70,19 +84,25 @@
             <table class="table table-modern mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-3">Tanggal</th>
-                        <th>Tipe</th>
-                        <th>Deskripsi</th>
-                        <th class="text-end">Nominal</th>
-                        <th>Status</th>
-                        <th>Akun Tujuan</th>
+                        <th class="ps-3" style="width:40px;"><input type="checkbox" class="form-check-input bulk-select-all"></th>
+                        <th class="sortable" data-sort="date">Tanggal</th>
+                        <th class="sortable" data-sort="string">Tipe</th>
+                        <th class="sortable" data-sort="string">Deskripsi</th>
+                        <th class="text-end sortable" data-sort="number">Nominal</th>
+                        <th class="sortable" data-sort="string">Status</th>
+                        <th class="sortable" data-sort="string">Akun Tujuan</th>
                         <th class="pe-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($pendings as $pending)
                     <tr>
-                        <td class="ps-3">{{ tgl($pending->pending_date) }}</td>
+                        <td class="ps-3">
+                            @if($pending->status === 'pending')
+                            <input type="checkbox" class="form-check-input bulk-select-item" value="{{ $pending->id }}" data-amount="{{ $pending->amount }}">
+                            @endif
+                        </td>
+                        <td>{{ tgl($pending->pending_date) }}</td>
                         <td><span class="badge bg-info">{{ $pending->type_label }}</span></td>
                         <td>{{ $pending->description }}</td>
                         <td class="text-end fw-semibold">{{ rp($pending->amount) }}</td>
@@ -133,7 +153,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Belum ada transaksi pending</td>
+                        <td colspan="8" class="text-center text-muted py-4">Belum ada transaksi pending</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -177,9 +197,7 @@
                     <select name="type" id="pending-type" class="form-select" required onchange="toggleBankField()">
                         <option value="">Pilih Tipe</option>
                         <option value="edc">EDC</option>
-                        <option value="qris">QRIS</option>
                         <option value="transfer">Transfer</option>
-                        <option value="other">Lainnya</option>
                     </select>
                 </div>
                 <div class="mb-3" id="bank-type-field" style="display:none;">
@@ -245,12 +263,13 @@
                 </div>
                 <div class="mb-3" id="akun-tujuan-section">
                     <label class="form-label">Akun Tujuan <span class="text-danger">*</span></label>
-                    <select name="completed_account_id" class="form-select" required>
+                    <select name="completed_account_id" id="completed-account-select" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accounts as $account)
                         <option value="{{ $account->id }}" data-type="{{ $account->type }}">{{ $account->name }} ({{ ucfirst($account->type) }})</option>
                         @endforeach
                     </select>
+                    <p class="text-muted mb-0" id="akun-tujuan-info" style="font-size:0.85rem; display:none;"></p>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Tanggal</label>
@@ -267,6 +286,52 @@
 
 @push('scripts')
 <script>
+// Bulk selection
+document.querySelector('.bulk-select-all')?.addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateBulkBar();
+});
+
+document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+function updateBulkBar() {
+    var checked = document.querySelectorAll('.bulk-select-item:checked');
+    var count = checked.length;
+    var bar = document.getElementById('bulkActionBar');
+    if (!bar) return;
+    
+    if (count > 0) {
+        bar.classList.remove('d-none');
+        document.getElementById('bulkCount').textContent = count;
+        
+        var ids = [];
+        checked.forEach(function(cb) { ids.push(cb.value); });
+        var form = document.getElementById('bulkDeleteForm');
+        form.querySelectorAll('input[name="ids[]"]').forEach(function(el) { el.remove(); });
+        ids.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+    } else {
+        bar.classList.add('d-none');
+    }
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.bulk-select-item, .bulk-select-all').forEach(function(cb) {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+
 $('#modalComplete').on('show.bs.modal', function (event) {
     var button = $(event.relatedTarget);
     var id = button.data('id');
@@ -290,14 +355,22 @@ $('#modalComplete').on('show.bs.modal', function (event) {
     }
 
     // Filter akun berdasarkan tipe
-    var select = $('select[name="completed_account_id"]');
+    var select = $('#completed-account-select');
+    var infoText = $('#akun-tujuan-info');
+    var bcaId = '{{ $accounts->firstWhere("name", config("accounts.bca_name"))?->id }}';
+    var cashId = '{{ $accounts->firstWhere("name", config("accounts.cash_name"))?->id }}';
+    
     select.find('option').show();
     if (type === 'transfer') {
-        // Transfer: pilih akun cash
-        select.find('option[data-type="cash"]').prop('selected', true);
+        // Transfer: sembunyikan dropdown, pakai Cash otomatis
+        select.hide().prop('required', false);
+        select.val(cashId);
+        infoText.text('Cash (otomatis)').show();
     } else {
-        // EDC/QRIS: pilih akun bank
-        select.find('option[data-type="bank"]').prop('selected', true);
+        // EDC: sembunyikan dropdown, pakai BCA otomatis
+        select.hide().prop('required', false);
+        select.val(bcaId);
+        infoText.text('BCA (otomatis)').show();
     }
     select.trigger('change');
 });

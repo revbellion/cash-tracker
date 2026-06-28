@@ -26,11 +26,13 @@ ADI CELL | POS/
 │   │   │   ├── ReceivableController.php  # CRUD piutang + bayar + WA
 │   │   │   ├── StockController.php       # POS, stok in, opname, receipt
 │   │   │   ├── SummaryController.php     # ringkasan bulanan
-│   │   │   └── UserController.php        # CRUD user + permissions
+│   │   │   ├── UserController.php        # CRUD user + permissions
+│   │   │   ├── PrintOrderController.php   # CRUD jasa cetak
+│   │   │   └── RepairServiceController.php # CRUD jasa servis
 │   │   ├── Middleware/
 │   │   │   ├── AdminMiddleware.php       # admin check
 │   │   │   └── CheckRole.php             # permission check
-│   │   └── Requests/                     # 14 Form Request classes
+│   │   └── Requests/                     # 22 Form Request classes
 │   ├── Models/
 │   │   ├── Account.php                   # + active() scope
 │   │   ├── BillPayment.php
@@ -38,11 +40,13 @@ ADI CELL | POS/
 │   │   ├── Income.php
 │   │   ├── Mutation.php
 │   │   ├── OpeningBalance.php
+│   │   ├── PrintOrder.php               # jasa cetak + auto income
 │   │   ├── Product.php                   # + stock_value, is_low_stock
 │   │   ├── ProductCategory.php
 │   │   ├── Receivable.php                # + remaining, status_badge
 │   │   ├── ReceivablePayment.php
 │   │   ├── RecurringBill.php
+│   │   ├── RepairService.php            # jasa servis + auto income
 │   │   ├── StockTransaction.php
 │   │   └── User.php                      # + isAdmin(), hasPermission()
 │   ├── Providers/
@@ -53,7 +57,9 @@ ADI CELL | POS/
 │       ├── ExpenseService.php
 │       ├── IncomeService.php
 │       ├── MutationService.php
+│       ├── PrintOrderService.php         # jasa cetak + auto income
 │       ├── ReceivableService.php
+│       ├── RepairServiceService.php      # jasa servis + auto income
 │       └── StockService.php              # stok in/out/opname/receipt
 ├── bootstrap/
 │   └── app.php                           # middleware aliases + guest redirect
@@ -61,7 +67,7 @@ ADI CELL | POS/
 │   ├── database.php                      # MySQL + PDO::MYSQL_ATTR_SSL_CA
 │   └── ...
 ├── database/
-│   └── migrations/                       # ~30 migration files
+│   └── migrations/                       # ~35 migration files
 ├── resources/
 │   └── views/
 │       ├── accounts/index.blade.php
@@ -77,11 +83,13 @@ ADI CELL | POS/
 │       ├── layouts/app.blade.php         # sidebar + navbar + CSS ~650 baris
 │       ├── mutations/index.blade.php
 │       ├── opening-balances/index.blade.php
+│       ├── print-orders/index.blade.php
 │       ├── product-categories/index.blade.php
 │       ├── products/
 │       │   ├── index.blade.php
 │       │   └── history.blade.php
 │       ├── receivables/index.blade.php
+│       ├── repair-services/index.blade.php
 │       ├── stock/
 │       │   ├── in.blade.php
 │       │   ├── opname.blade.php
@@ -111,7 +119,7 @@ ADI CELL | POS/
 - **Service** → business logic, DB transactions, perhitungan
 - **Model** → Eloquent ORM, relationships, accessors, scopes, casts
 - **View** → Blade template, inline CSS, modal CRUD, filter form
-- **Form Request** → validasi input + custom messages (14 classes)
+- **Form Request** → validasi input + custom messages (22 classes)
 
 ### Middleware Pipeline
 ```

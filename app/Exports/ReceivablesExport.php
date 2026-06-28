@@ -30,7 +30,7 @@ class ReceivablesExport implements FromCollection, WithHeadings, WithMapping
             $query->whereDate('date', '<=', $this->filters['date_to']);
         }
         if (!empty($this->filters['search'])) {
-            $s = $this->filters['search'];
+            $s = addcslashes($this->filters['search'], '%_');
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                   ->orWhere('phone', 'like', "%{$s}%");
@@ -54,7 +54,7 @@ class ReceivablesExport implements FromCollection, WithHeadings, WithMapping
             $row->amount,
             $row->due_date->format('d/m/Y'),
             $row->remaining,
-            $row->status === 'paid' ? 'Lunas' : 'Belum',
+            $row->status === 'paid' ? 'Lunas' : ($row->status === 'voided' ? 'Dibatalkan' : 'Belum'),
         ];
     }
 }

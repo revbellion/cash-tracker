@@ -6,6 +6,7 @@ use App\Exports\MutationsExport;
 use App\Http\Requests\StoreMutationRequest;
 use App\Http\Requests\UpdateMutationRequest;
 use App\Models\Account;
+use App\Services\DashboardService;
 use App\Services\MutationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -22,9 +23,14 @@ class MutationController extends Controller
         $filters = $this->parseFilters($request);
         $result = $this->mutationService->getAll($filters);
 
+        $accounts = Account::active()->get();
+        $period = now()->format('Y-m');
+        $accountBalances = app(DashboardService::class)->calculateAccountBalances($accounts, $period);
+
         return view('mutations.index', [
             'mutations' => $result['mutations'],
-            'accounts' => Account::active()->get(),
+            'accounts' => $accounts,
+            'accountBalances' => $accountBalances,
             'totalAmount' => $result['totalAmount'],
         ]);
     }
@@ -57,6 +63,21 @@ class MutationController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal menghapus mutasi: ' . $e->getMessage());
         }
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+        $deleted = 0;
+        foreach ($request->ids as $id) {
+            try {
+                $this->mutationService->delete($id);
+                $deleted++;
+            } catch (\Exception $e) {
+                // skip
+            }
+        }
+        return redirect()->back()->with('success', "{$deleted} data berhasil dihapus.");
     }
 
     public function export(Request $request)

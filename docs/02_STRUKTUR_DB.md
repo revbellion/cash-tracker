@@ -178,3 +178,39 @@ Semua FK menggunakan `nullOnDelete` (diubah via migration `2026_06_14_121526`):
 - Delete product → FK jadi null (riwayat transaksi tetap ada)
 - Delete category → FK product.category_id jadi null
 - Delete receivable → FK receivable_payments.receivable_id jadi null
+
+## Tabel: `print_orders`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | bigint PK | |
+| date | datetime | |
+| service_type | varchar(20) | cetak_foto, fotokopi, print, ketik, browsing |
+| quantity | integer | jumlah lembar |
+| price_per_unit | integer | harga satuan |
+| total | integer | quantity × price_per_unit |
+| description | varchar(255) nullable | |
+| account_id | bigint FK → accounts | cascadeOnDelete |
+| income_id | bigint FK → incomes nullable | nullOnDelete, auto-created |
+| timestamps | | |
+
+**Auto-create Income** (kategori: "Jasa Cetak") saat transaksi dibuat.
+
+## Tabel: `repair_services`
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | bigint PK | |
+| date | datetime | |
+| customer_name | varchar(100) | |
+| customer_phone | varchar(20) nullable | |
+| device_type | varchar(20) | hp, laptop |
+| device_model | varchar(100) nullable | brand/model |
+| issue_description | text nullable | keluhan |
+| service_fee | integer | biaya jasa |
+| sparepart_cost | integer | default 0 |
+| sparepart_description | varchar(255) nullable | |
+| total | integer | service_fee + sparepart_cost |
+| account_id | bigint FK → accounts | cascadeOnDelete |
+| income_id | bigint FK → incomes nullable | nullOnDelete, auto-created |
+| timestamps | | |
+
+**Auto-create Income** (kategori: "Jasa Servis") saat transaksi dibuat.

@@ -5,6 +5,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0">Piutang</h4>
     <div class="d-flex gap-2">
+        <button type="button" class="btn btn-modern btn-success" id="btn-batch-bayar" style="display:none;" onclick="openBatchBayar()">
+            <i class="fas fa-check-double me-1"></i>Bayar Semua (<span id="batch-count">0</span>) - <span id="batch-total-btn">Rp 0</span>
+        </button>
         <a href="{{ route('receivables.export') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}" class="btn btn-modern btn-success">
             <i class="fas fa-file-excel me-1"></i>Export
         </a>
@@ -16,19 +19,35 @@
 
 <form autocomplete="off" method="GET" action="{{ route('receivables.index') }}" class="row g-2 mb-4 filter-form">
     <div class="col-auto">
-        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm" style="width:auto;">
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm" style="width:auto;" onchange="this.form.submit()">
     </div>
     <div class="col-auto">
-        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm" style="width:auto;">
+        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm" style="width:auto;" onchange="this.form.submit()">
     </div>
     <div class="col-auto">
-        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari nama/HP..." style="width:150px;">
+        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Cari nama/HP..." style="width:150px;" oninput=" clearTimeout(this._timer); this._timer=setTimeout(()=>this.form.submit(),500)">
     </div>
     <div class="col-auto">
-        <button type="submit" class="btn btn-modern btn-primary btn-sm"><i class="fas fa-search me-1"></i>Cari</button>
         <a href="{{ route('receivables.index') }}" class="btn btn-modern btn-secondary btn-sm"><i class="fas fa-times me-1"></i>Reset</a>
     </div>
 </form>
+
+<div class="bulk-action-bar mb-3 d-none" id="bulkActionBar">
+    <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background:rgba(var(--theme-primary-rgb),0.08);border:1px solid rgba(var(--theme-primary-rgb),0.2);">
+        <span class="fw-semibold" style="font-size:0.85rem;"><span id="bulkCount">0</span> dipilih</span>
+        <span class="fw-bold" style="font-size:0.85rem;color:var(--theme-primary);" id="bulkTotal"></span>
+        <form autocomplete="off" id="bulkDeleteForm" method="POST" action="{{ route('receivables.bulk-delete') }}" style="display:inline;">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-modern btn-danger btn-sm" onclick="event.preventDefault(); confirmDelete('Hapus data yang dipilih?').then(ok => ok && this.closest('form').submit());">
+                <i class="fas fa-trash me-1"></i>Hapus
+            </button>
+        </form>
+        <button type="button" class="btn btn-modern btn-secondary btn-sm" onclick="clearBulkSelection()">
+            <i class="fas fa-times me-1"></i>Batal
+        </button>
+    </div>
+</div>
 
 <div class="card card-modern shadow-sm">
     <div class="card-body p-0">
@@ -36,19 +55,23 @@
             <ul class="nav nav-tabs border-0">
                 <li class="nav-item">
                     <a class="nav-link border-0 fw-semibold {{ request('status') == '' ? 'active' : '' }}" 
-                       href="{{ route('receivables.index') }}">All</a>
+                       href="{{ route('receivables.index') }}">Semua</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link border-0 fw-semibold {{ request('status') == 'unpaid' ? 'active' : '' }}" 
-                       href="{{ route('receivables.index', ['status' => 'unpaid']) }}">Unpaid</a>
+                       href="{{ route('receivables.index', ['status' => 'unpaid']) }}">Belum Lunas</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link border-0 fw-semibold {{ request('status') == 'paid' ? 'active' : '' }}" 
-                       href="{{ route('receivables.index', ['status' => 'paid']) }}">Paid</a>
+                       href="{{ route('receivables.index', ['status' => 'paid']) }}">Lunas</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link border-0 fw-semibold {{ request('status') == 'overdue' ? 'active' : '' }}" 
                        href="{{ route('receivables.index', ['status' => 'overdue']) }}">Telat</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link border-0 fw-semibold {{ request('status') == 'voided' ? 'active' : '' }}" 
+                       href="{{ route('receivables.index', ['status' => 'voided']) }}">Batal</a>
                 </li>
             </ul>
         </div>
@@ -56,22 +79,26 @@
             <table class="table table-modern mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-3">Tanggal</th>
-                        <th>Nama</th>
-                        <th>No. HP</th>
-                        <th>Total</th>
-                        <th>Jatuh Tempo</th>
-                        <th>Sisa</th>
-                        <th>Status</th>
+                        <th class="ps-3" style="width:40px;"><input type="checkbox" class="form-check-input bulk-select-all" id="check-all" onclick="toggleAll(this)"></th>
+                        <th class="sortable" data-sort="date">Tanggal</th>
+                        <th class="sortable" data-sort="string">Nama</th>
+                        <th class="sortable" data-sort="number">Total</th>
+                        <th class="sortable" data-sort="date">Jatuh Tempo</th>
+                        <th class="sortable" data-sort="number">Sisa</th>
+                        <th class="sortable" data-sort="string">Status</th>
                         <th class="pe-3">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($receivables as $receivable)
                     <tr>
-                        <td class="ps-3">{{ tgl($receivable->date) }}</td>
+                        <td class="ps-3">
+                            @if($receivable->status !== 'paid')
+                            <input type="checkbox" class="form-check-input bulk-select-item piutang-check" value="{{ $receivable->id }}" data-amount="{{ $receivable->remaining }}" data-remaining="{{ $receivable->remaining }}" onchange="updateBatch()">
+                            @endif
+                        </td>
+                        <td>{{ tgl($receivable->date) }}</td>
                         <td class="fw-semibold">{{ $receivable->name }}</td>
-                        <td>{{ $receivable->phone ?? '-' }}</td>
                         <td class="fw-semibold">{{ rp($receivable->amount) }}</td>
                         <td>{{ tgl($receivable->due_date) }}</td>
                         <td class="fw-semibold">{{ rp($receivable->remaining) }}</td>
@@ -83,7 +110,8 @@
                                 data-name="{{ $receivable->name }}"
                                 data-phone="{{ $receivable->phone }}"
                                 data-amount="{{ $receivable->amount }}"
-                                data-date="{{ $receivable->date->format('Y-m-d') }}">
+                                data-date="{{ $receivable->date->format('Y-m-d') }}"
+                                data-customer-id="{{ $receivable->customer_id }}">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button type="button" class="btn btn-modern btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalBayarPiutang"
@@ -92,18 +120,9 @@
                                 data-amount="{{ $receivable->remaining }}">
                                 <i class="fas fa-check me-1"></i>Bayar
                             </button>
-
-                            @if($receivable->phone)
-                            <a href="{{ route('receivables.whatsapp', $receivable->id) }}" class="btn btn-modern btn-warning btn-sm" target="_blank">
-                                <i class="fab fa-whatsapp me-1"></i>WA
-                            </a>
-                            @else
-                            <button class="btn btn-modern btn-warning btn-sm" disabled title="No HP tidak tersedia">
-                                <i class="fab fa-whatsapp me-1"></i>WA
-                            </button>
-                            @endif
                             @endif
 
+                            @if($receivable->status !== 'paid')
                             <form autocomplete="off" action="{{ route('receivables.destroy', $receivable->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
@@ -111,6 +130,19 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                            @if($receivable->status === 'unpaid')
+                            <form autocomplete="off" action="{{ route('receivables.void', $receivable->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-modern btn-secondary btn-sm" onclick="event.preventDefault(); confirmAction('Batalkan piutang ini?', 'Status akan diubah menjadi Dibatalkan.').then(ok => ok && this.form.submit());">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </form>
+                            @endif
+                            @else
+                            <button type="button" class="btn btn-modern btn-secondary btn-sm" disabled title="Piutang lunas tidak bisa dihapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            @endif
                         </td>
                     </tr>
                     @empty
@@ -154,12 +186,21 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
+                    <label class="form-label">Pelanggan</label>
+                    <select name="customer_id" class="form-select" id="tambah-customer-select">
+                        <option value="">Tanpa Pelanggan / Ketik Manual</option>
+                        @foreach($customers as $customer)
+                        <option value="{{ $customer->id }}" data-name="{{ $customer->name }}">{{ $customer->name }} {{ $customer->phone ? '- ' . $customer->phone : '' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Nama</label>
-                    <input type="text" name="name" class="form-control" required>
+                    <input type="text" name="name" id="tambah-name" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">No. HP</label>
-                    <input type="text" name="phone" class="form-control">
+                    <input type="text" name="phone" class="form-control" placeholder="08xxx">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Total Bayar</label>
@@ -190,6 +231,15 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
+                    <label class="form-label">Pelanggan</label>
+                    <select name="customer_id" class="form-select" id="edit-customer-select">
+                        <option value="">Tanpa Pelanggan</option>
+                        @foreach($customers as $customer)
+                        <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Nama</label>
                     <input type="text" name="name" id="edit-receivable-name" class="form-control" required>
                 </div>
@@ -217,7 +267,7 @@
 
 <div class="modal fade modal-modern" tabindex="-1" id="modalBayarPiutang">
     <div class="modal-dialog">
-        <form autocomplete="off" method="POST" action="{{ route('receivables.pay') }}" class="modal-content">
+        <form autocomplete="off" method="POST" action="{{ route('receivables.pay') }}" class="modal-content" id="formBayarPiutang">
             @csrf
             <div class="modal-header">
                 <h5 class="modal-title fw-bold">Bayar Piutang</h5>
@@ -234,13 +284,16 @@
                     <select name="account_id" class="form-select" required>
                         <option value="">Pilih Akun</option>
                         @foreach($accounts as $account)
-                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @if($account->type !== 'ppob')
+                        <option value="{{ $account->id }}" {{ $account->name === 'Cash' ? 'selected' : '' }}>{{ $account->name }}</option>
+                        @endif
                         @endforeach
                     </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Jumlah Bayar</label>
                     <input type="number" step="1" name="amount" id="pay-amount" class="form-control" required>
+                    <small class="text-muted">Sisa hutang: <span id="pay-remaining" class="fw-semibold"></span></small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Tanggal</label>
@@ -254,24 +307,183 @@
         </form>
     </div>
 </div>
+
+<!-- Modal Batch Bayar -->
+<div class="modal fade modal-modern" tabindex="-1" id="modalBatchBayar">
+    <div class="modal-dialog">
+        <form autocomplete="off" method="POST" action="{{ route('receivables.batch-pay') }}" class="modal-content" id="formBatchBayar">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-check-double me-2"></i>Bayar Piutang</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Piutang yang dipilih</label>
+                    <div id="batch-list" class="p-2 rounded" style="background:var(--border-subtle);max-height:150px;overflow-y:auto;font-size:0.85rem;"></div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <span class="text-muted">Total piutang:</span>
+                        <span class="fw-bold" id="batch-total">Rp 0</span>
+                    </div>
+                </div>
+                <input type="hidden" name="receivable_ids" id="batch-ids">
+                <div class="mb-3">
+                    <label class="form-label">Akun</label>
+                    <select name="account_id" class="form-select" required>
+                        <option value="">Pilih Akun</option>
+                        @foreach($accounts as $account)
+                        @if($account->type !== 'ppob')
+                        <option value="{{ $account->id }}" {{ $account->name === 'Cash' ? 'selected' : '' }}>{{ $account->name }}</option>
+                        @endif
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tanggal</label>
+                    <input type="date" name="date" value="{{ date('Y-m-d') }}" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-modern btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-modern btn-success"><i class="fas fa-check me-1"></i>Bayar Semua</button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
+// Bulk delete selection
+document.querySelector('.bulk-select-all:not(#check-all)')?.addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+        cb.checked = checked;
+    });
+    updateBulkBar();
+});
+
+document.querySelectorAll('.bulk-select-item').forEach(function(cb) {
+    cb.addEventListener('change', updateBulkBar);
+});
+
+function updateBulkBar() {
+    var checked = document.querySelectorAll('.bulk-select-item:checked');
+    var count = checked.length;
+    var bar = document.getElementById('bulkActionBar');
+    if (!bar) return;
+    
+    if (count > 0) {
+        bar.classList.remove('d-none');
+        document.getElementById('bulkCount').textContent = count;
+        
+        var total = 0;
+        checked.forEach(function(cb) { total += parseInt(cb.dataset.amount) || 0; });
+        document.getElementById('bulkTotal').textContent = total > 0 ? 'Total: Rp ' + total.toLocaleString('id-ID') : '';
+        
+        var ids = [];
+        checked.forEach(function(cb) { ids.push(cb.value); });
+        var form = document.getElementById('bulkDeleteForm');
+        form.querySelectorAll('input[name="ids[]"]').forEach(function(el) { el.remove(); });
+        ids.forEach(function(id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+    } else {
+        bar.classList.add('d-none');
+    }
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.bulk-select-item, .bulk-select-all').forEach(function(cb) {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+
 $('#modalBayarPiutang').on('show.bs.modal', function (event) {
     var button = $(event.relatedTarget);
+    var remaining = parseInt(button.data('amount')) || 0;
     $('#pay-receivable-id').val(button.data('id'));
     $('#pay-name').text(button.data('name'));
-    $('#pay-amount').val(button.data('amount'));
+    $('#pay-amount').val(remaining).attr('max', remaining);
+    $('#pay-remaining').text('Rp ' + remaining.toLocaleString('id-ID'));
+});
+
+$('#formBayarPiutang').on('submit', function(e) {
+    var amount = parseInt($('#pay-amount').val()) || 0;
+    var max = parseInt($('#pay-amount').attr('max')) || 0;
+    if (amount > max) {
+        e.preventDefault();
+        alert('Jumlah bayar tidak boleh melebihi sisa piutang!');
+    }
 });
 
 $('#modalEditPiutang').on('show.bs.modal', function (event) {
     var button = $(event.relatedTarget);
     $('#edit-receivable-name').val(button.data('name'));
-    $('#edit-receivable-phone').val(button.data('phone') || '');
+    $('#edit-receivable-phone').val(button.data('phone'));
     $('#edit-receivable-amount').val(button.data('amount'));
     $('#edit-receivable-date').val(button.data('date'));
+    $('#edit-customer-select').val(button.data('customer-id') || '');
     $('#formEditPiutang').attr('action', '{{ url("receivables") }}/' + button.data('id'));
+});
+
+// Batch payment functions
+function toggleAll(el) {
+    document.querySelectorAll('.piutang-check').forEach(function(cb) {
+        cb.checked = el.checked;
+    });
+    updateBatch();
+}
+
+function updateBatch() {
+    var checked = document.querySelectorAll('.piutang-check:checked');
+    var count = checked.length;
+    var total = 0;
+    var ids = [];
+    var listHtml = '';
+
+    checked.forEach(function(cb) {
+        var remaining = parseInt(cb.dataset.remaining) || 0;
+        var name = cb.closest('tr').querySelector('td:nth-child(3)').textContent.trim();
+        total += remaining;
+        ids.push(cb.value);
+        listHtml += '<div class="d-flex justify-content-between"><span>' + name + '</span><span class="fw-semibold">' + formatRupiah(remaining) + '</span></div>';
+    });
+
+    document.getElementById('batch-count').textContent = count;
+    document.getElementById('batch-total').textContent = formatRupiah(total);
+    document.getElementById('batch-total-btn').textContent = formatRupiah(total);
+    document.getElementById('batch-ids').value = ids.join(',');
+    document.getElementById('batch-list').innerHTML = listHtml || '<div class="text-muted text-center">Tidak ada piutang dipilih</div>';
+    document.getElementById('btn-batch-bayar').style.display = count > 0 ? '' : 'none';
+    document.getElementById('check-all').checked = count === document.querySelectorAll('.piutang-check').length;
+}
+
+function formatRupiah(num) {
+    return 'Rp ' + num.toLocaleString('id-ID');
+}
+
+function openBatchBayar() {
+    var ids = document.getElementById('batch-ids').value;
+    if (!ids) return;
+    new bootstrap.Modal(document.getElementById('modalBatchBayar')).show();
+}
+
+// Customer auto-fill for tambah modal
+document.getElementById('tambah-customer-select')?.addEventListener('change', function() {
+    var selected = this.options[this.selectedIndex];
+    if (selected.value) {
+        document.getElementById('tambah-name').value = selected.dataset.name;
+        document.getElementById('tambah-name').readOnly = true;
+    } else {
+        document.getElementById('tambah-name').value = '';
+        document.getElementById('tambah-name').readOnly = false;
+    }
 });
 </script>
 @endpush

@@ -32,6 +32,12 @@ class StoreReceivableRequest extends FormRequest
             'date' => [
                 'required',
                 'date',
+                'before_or_equal:today',
+            ],
+            'customer_id' => [
+                'nullable',
+                'integer',
+                'exists:customers,id',
             ],
         ];
     }
@@ -45,6 +51,7 @@ class StoreReceivableRequest extends FormRequest
             'min' => ':attribute minimal :min.',
             'max' => ':attribute maksimal :max karakter.',
             'date' => ':attribute harus berupa tanggal yang valid.',
+            'customer_id.exists' => 'Pelanggan tidak ditemukan.',
         ];
     }
 
@@ -55,6 +62,7 @@ class StoreReceivableRequest extends FormRequest
             'phone' => 'No. HP',
             'amount' => 'Total Bayar',
             'date' => 'Tanggal',
+            'customer_id' => 'Pelanggan',
         ];
     }
 }

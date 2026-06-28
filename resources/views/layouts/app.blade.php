@@ -17,7 +17,7 @@
 
 <div class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-        <img src="{{ asset('logo.png') }}" alt="Logo" style="width:45px;height:45px;object-fit:contain;flex-shrink:0;">
+        <img src="{{ asset('logo.png') }}" alt="Logo" style="width:45px;height:45px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.2));">
         <span>ADI CELL | POS</span>
     </div>
     <div class="sidebar-nav">
@@ -30,22 +30,89 @@
         </div>
         @endif
 
+        {{-- ═══ PENJUALAN (POS + Stok) ═══ --}}
         @php
-            $hasTransaksi = Auth::user()->hasPermission(config('permissions.MUTATIONS')) || Auth::user()->hasPermission(config('permissions.EXPENSES')) || Auth::user()->hasPermission(config('permissions.INCOMES')) || Auth::user()->hasPermission(config('permissions.RECEIVABLES')) || Auth::user()->hasPermission(config('permissions.SUMMARY'));
+            $penjualanActive = request()->routeIs('stock.sales') || request()->routeIs('stock.in') || request()->routeIs('stock.opname') || request()->routeIs('sales-report.*') || request()->routeIs('customers.*') || request()->routeIs('returns.*') || request()->routeIs('print-orders.*') || request()->routeIs('repair-services.*');
         @endphp
-        @if($hasTransaksi)
-        @php
-            $transaksiActive = request()->routeIs('mutations.*') || request()->routeIs('expenses.*') || request()->routeIs('incomes.*') || request()->routeIs('receivables.*') || request()->routeIs('summary.*');
-        @endphp
+        @if(Auth::user()->hasPermission(config('permissions.POS')) || Auth::user()->hasPermission(config('permissions.CUSTOMERS')) || Auth::user()->hasPermission(config('permissions.RETURNS')) || Auth::user()->hasPermission(config('permissions.PRINT_ORDERS')) || Auth::user()->hasPermission(config('permissions.REPAIR_SERVICES')))
         <div class="nav-item">
-            <a class="nav-link group-header {{ $transaksiActive ? 'active' : '' }}"
-               data-bs-toggle="collapse" data-bs-target="#collapseTransaksi"
-               onclick="return false;" role="button" aria-expanded="{{ $transaksiActive ? 'true' : 'false' }}">
-                <i class="fas fa-exchange-alt"></i>
-                <span class="nav-label">Transaksi</span>
-                <i class="fas fa-chevron-down caret {{ $transaksiActive ? 'open' : '' }}"></i>
+            <a class="nav-link group-header {{ $penjualanActive ? 'active' : '' }}"
+               data-bs-toggle="collapse" data-bs-target="#collapsePenjualan"
+               onclick="return false;" role="button" aria-expanded="{{ $penjualanActive ? 'true' : 'false' }}">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="nav-label">Penjualan</span>
+                <i class="fas fa-chevron-down caret {{ $penjualanActive ? 'open' : '' }}"></i>
             </a>
-            <div class="collapse submenu {{ $transaksiActive ? 'show' : '' }}" id="collapseTransaksi">
+            <div class="collapse submenu {{ $penjualanActive ? 'show' : '' }}" id="collapsePenjualan">
+                @if(Auth::user()->hasPermission(config('permissions.POS')))
+                <a class="nav-link sub-link {{ request()->routeIs('stock.sales') ? 'active' : '' }}" href="{{ route('stock.sales') }}">
+                    <i class="fas fa-cart-plus"></i>
+                    <span class="nav-label">POS (Jual Barang)</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.PRINT_ORDERS')))
+                <a class="nav-link sub-link {{ request()->routeIs('print-orders.*') ? 'active' : '' }}" href="{{ route('print-orders.index') }}">
+                    <i class="fas fa-print"></i>
+                    <span class="nav-label">Jasa Cetak</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.REPAIR_SERVICES')))
+                <a class="nav-link sub-link {{ request()->routeIs('repair-services.*') ? 'active' : '' }}" href="{{ route('repair-services.index') }}">
+                    <i class="fas fa-tools"></i>
+                    <span class="nav-label">Jasa Servis</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.CUSTOMERS')))
+                <a class="nav-link sub-link {{ request()->routeIs('customers.*') ? 'active' : '' }}" href="{{ route('customers.index') }}">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-label">Pelanggan</span>
+                    @if(isset($activeCustomerCount) && $activeCustomerCount > 0)
+                        <span class="badge bg-primary rounded-pill" style="font-size:0.6rem;padding:0.2em 0.5em;">{{ $activeCustomerCount }}</span>
+                    @endif
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.RETURNS')))
+                <a class="nav-link sub-link {{ request()->routeIs('returns.*') ? 'active' : '' }}" href="{{ route('returns.index') }}">
+                    <i class="fas fa-undo-alt"></i>
+                    <span class="nav-label">Retur</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.STOCK_IN')))
+                <a class="nav-link sub-link {{ request()->routeIs('stock.in') ? 'active' : '' }}" href="{{ route('stock.in') }}">
+                    <i class="fas fa-arrow-down"></i>
+                    <span class="nav-label">Stok Masuk</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.STOCK_OPNAME')))
+                <a class="nav-link sub-link {{ request()->routeIs('stock.opname') ? 'active' : '' }}" href="{{ route('stock.opname') }}">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span class="nav-label">Stok Opname</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.SALES_REPORT')))
+                <a class="nav-link sub-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" href="{{ route('sales-report.index') }}">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="nav-label">Laporan Penjualan</span>
+                </a>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        {{-- ═══ KEUANGAN ═══ --}}
+        @php
+            $keuanganActive = request()->routeIs('mutations.*') || request()->routeIs('expenses.*') || request()->routeIs('incomes.*') || request()->routeIs('receivables.*') || request()->routeIs('pending.*') || request()->routeIs('summary.*') || request()->routeIs('reports.*') || request()->routeIs('hpp-records.*');
+        @endphp
+        @if(Auth::user()->hasPermission(config('permissions.MUTATIONS')) || Auth::user()->hasPermission(config('permissions.EXPENSES')) || Auth::user()->hasPermission(config('permissions.INCOMES')) || Auth::user()->hasPermission(config('permissions.RECEIVABLES')) || Auth::user()->hasPermission(config('permissions.REPORTS')) || Auth::user()->hasPermission(config('permissions.STOCK_REPORT')))
+        <div class="nav-item">
+            <a class="nav-link group-header {{ $keuanganActive ? 'active' : '' }}"
+               data-bs-toggle="collapse" data-bs-target="#collapseKeuangan"
+               onclick="return false;" role="button" aria-expanded="{{ $keuanganActive ? 'true' : 'false' }}">
+                <i class="fas fa-money-bill-wave"></i>
+                <span class="nav-label">Keuangan</span>
+                <i class="fas fa-chevron-down caret {{ $keuanganActive ? 'open' : '' }}"></i>
+            </a>
+            <div class="collapse submenu {{ $keuanganActive ? 'show' : '' }}" id="collapseKeuangan">
                 @if(Auth::user()->hasPermission(config('permissions.MUTATIONS')))
                 <a class="nav-link sub-link {{ request()->routeIs('mutations.*') ? 'active' : '' }}" href="{{ route('mutations.index') }}">
                     <i class="fas fa-arrow-right-arrow-left"></i>
@@ -66,7 +133,7 @@
                 @endif
                 @if(Auth::user()->hasPermission(config('permissions.RECEIVABLES')))
                 <a class="nav-link sub-link {{ request()->routeIs('receivables.*') ? 'active' : '' }}" href="{{ route('receivables.index') }}">
-                    <i class="fas fa-hand-holding-usd"></i>
+                    <i class="fas fa-file-invoice-dollar"></i>
                     <span class="nav-label">Piutang</span>
                     @if(isset($unpaidPiutangCount) && $unpaidPiutangCount > 0)
                         <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;padding:0.2em 0.5em;">{{ $unpaidPiutangCount }}</span>
@@ -85,40 +152,70 @@
                     <span class="nav-label">Ringkasan</span>
                 </a>
                 @endif
+                @if(Auth::user()->hasPermission(config('permissions.REPORTS')))
+                <a class="nav-link sub-link {{ request()->routeIs('reports.profit-loss') ? 'active' : '' }}" href="{{ route('reports.profit-loss') }}">
+                    <i class="fas fa-balance-scale"></i>
+                    <span class="nav-label">Laba Rugi</span>
+                </a>
+                <a class="nav-link sub-link {{ request()->routeIs('reports.balance-sheet') ? 'active' : '' }}" href="{{ route('reports.balance-sheet') }}">
+                    <i class="fas fa-book"></i>
+                    <span class="nav-label">Neraca</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.STOCK_REPORT')))
+                <a class="nav-link sub-link {{ request()->routeIs('hpp-records.*') ? 'active' : '' }}" href="{{ route('hpp-records.index') }}">
+                    <i class="fas fa-cubes"></i>
+                    <span class="nav-label">Laporan Divisi</span>
+                </a>
+                @endif
             </div>
         </div>
         @endif
 
-        @if(Auth::user()->hasPermission(config('permissions.CASH_COUNTER')))
-        <div class="nav-item">
-            <a class="nav-link {{ request()->routeIs('cash-counter.*') ? 'active' : '' }}" href="{{ route('cash-counter.index') }}">
-                <i class="fas fa-calculator"></i>
-                <span class="nav-label">Cash Counter</span>
-            </a>
-        </div>
-        @endif
-
-        @if(Auth::user()->hasPermission(config('permissions.BILLS')))
-        <div class="nav-item">
-            <a class="nav-link {{ request()->routeIs('bills.*') ? 'active' : '' }}" href="{{ route('bills.index') }}">
-                <i class="fas fa-file-invoice"></i>
-                <span class="nav-label">Tagihan</span>
-            </a>
-        </div>
-        @endif
-
+        {{-- ═══ KAS ═══ --}}
         @php
-            $stokActive = request()->routeIs('product-categories.*') || request()->routeIs('products.*') || request()->routeIs('stock.*');
+            $kasActive = request()->routeIs('cash-counter.*') || request()->routeIs('bills.*');
         @endphp
+        @if(Auth::user()->hasPermission(config('permissions.CASH_COUNTER')) || Auth::user()->hasPermission(config('permissions.BILLS')))
         <div class="nav-item">
-            <a class="nav-link group-header {{ $stokActive ? 'active' : '' }}"
-               data-bs-toggle="collapse" data-bs-target="#collapseStok"
-               onclick="return false;" role="button" aria-expanded="{{ $stokActive ? 'true' : 'false' }}">
-                <i class="fas fa-box"></i>
-                <span class="nav-label">Stok Barang</span>
-                <i class="fas fa-chevron-down caret {{ $stokActive ? 'open' : '' }}"></i>
+            <a class="nav-link group-header {{ $kasActive ? 'active' : '' }}"
+               data-bs-toggle="collapse" data-bs-target="#collapseKas"
+               onclick="return false;" role="button" aria-expanded="{{ $kasActive ? 'true' : 'false' }}">
+                <i class="fas fa-cash-register"></i>
+                <span class="nav-label">Kas</span>
+                <i class="fas fa-chevron-down caret {{ $kasActive ? 'open' : '' }}"></i>
             </a>
-            <div class="collapse submenu {{ $stokActive ? 'show' : '' }}" id="collapseStok">
+            <div class="collapse submenu {{ $kasActive ? 'show' : '' }}" id="collapseKas">
+                @if(Auth::user()->hasPermission(config('permissions.CASH_COUNTER')))
+                <a class="nav-link sub-link {{ request()->routeIs('cash-counter.*') ? 'active' : '' }}" href="{{ route('cash-counter.index') }}">
+                    <i class="fas fa-calculator"></i>
+                    <span class="nav-label">Cash Counter</span>
+                </a>
+                @endif
+                @if(Auth::user()->hasPermission(config('permissions.BILLS')))
+                <a class="nav-link sub-link {{ request()->routeIs('bills.*') ? 'active' : '' }}" href="{{ route('bills.index') }}">
+                    <i class="fas fa-file-invoice"></i>
+                    <span class="nav-label">Tagihan</span>
+                </a>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        {{-- ═══ INVENTARIS ═══ --}}
+        @php
+            $inventarisActive = request()->routeIs('products.*') || request()->routeIs('product-categories.*') || request()->routeIs('stock.report');
+        @endphp
+        @if(Auth::user()->hasPermission(config('permissions.PRODUCTS')))
+        <div class="nav-item">
+            <a class="nav-link group-header {{ $inventarisActive ? 'active' : '' }}"
+               data-bs-toggle="collapse" data-bs-target="#collapseInventaris"
+               onclick="return false;" role="button" aria-expanded="{{ $inventarisActive ? 'true' : 'false' }}">
+                <i class="fas fa-boxes-stacked"></i>
+                <span class="nav-label">Inventaris</span>
+                <i class="fas fa-chevron-down caret {{ $inventarisActive ? 'open' : '' }}"></i>
+            </a>
+            <div class="collapse submenu {{ $inventarisActive ? 'show' : '' }}" id="collapseInventaris">
                 @if(Auth::user()->hasPermission(config('permissions.PRODUCTS')))
                 <a class="nav-link sub-link {{ request()->routeIs('products.*') ? 'active' : '' }}" href="{{ route('products.index') }}">
                     <i class="fas fa-cube"></i>
@@ -131,45 +228,32 @@
                     <span class="nav-label">Kategori</span>
                 </a>
                 @endif
-                @if(Auth::user()->hasPermission(config('permissions.STOCK_IN')))
-                <a class="nav-link sub-link {{ request()->routeIs('stock.in') ? 'active' : '' }}" href="{{ route('stock.in') }}">
-                    <i class="fas fa-arrow-down"></i>
-                    <span class="nav-label">Stok Masuk</span>
-                </a>
-                @endif
-                @if(Auth::user()->hasPermission(config('permissions.POS')))
-                <a class="nav-link sub-link {{ request()->routeIs('stock.sales') ? 'active' : '' }}" href="{{ route('stock.sales') }}">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="nav-label">Penjualan</span>
-                </a>
-                @endif
-                @if(Auth::user()->hasPermission(config('permissions.STOCK_OPNAME')))
-                <a class="nav-link sub-link {{ request()->routeIs('stock.opname') ? 'active' : '' }}" href="{{ route('stock.opname') }}">
-                    <i class="fas fa-clipboard-list"></i>
-                    <span class="nav-label">Stok Opname</span>
-                </a>
-                @endif
                 @if(Auth::user()->hasPermission(config('permissions.STOCK_REPORT')))
                 <a class="nav-link sub-link {{ request()->routeIs('stock.report') ? 'active' : '' }}" href="{{ route('stock.report') }}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span class="nav-label">Laporan</span>
+                    <i class="fas fa-warehouse"></i>
+                    <span class="nav-label">Laporan Stok</span>
                 </a>
                 @endif
             </div>
         </div>
+        @endif
 
-        @if(Auth::user()->hasPermission(config('permissions.ACCOUNTS')))
+        {{-- ═══ AKUN ═══ --}}
+        @php
+            $akunActive = request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') || request()->routeIs('opname-saldo.*');
+        @endphp
+        @if(Auth::user()->hasPermission(config('permissions.ACCOUNTS')) || Auth::user()->hasPermission(config('permissions.STOCK_REPORT')))
         <div class="nav-item">
-            <a class="nav-link group-header {{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') ? 'active' : '' }}"
+            <a class="nav-link group-header {{ $akunActive ? 'active' : '' }}"
                data-bs-toggle="collapse" data-bs-target="#collapseAkun"
-               onclick="return false;" role="button" aria-expanded="{{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') ? 'true' : 'false' }}">
+               onclick="return false;" role="button" aria-expanded="{{ $akunActive ? 'true' : 'false' }}">
                 <i class="fas fa-wallet"></i>
                 <span class="nav-label">Akun</span>
-                <i class="fas fa-chevron-down caret {{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') ? 'open' : '' }}"></i>
+                <i class="fas fa-chevron-down caret {{ $akunActive ? 'open' : '' }}"></i>
             </a>
-            <div class="collapse submenu {{ request()->routeIs('accounts.*') || request()->routeIs('opening-balances.*') || request()->routeIs('opname-saldo.*') ? 'show' : '' }}" id="collapseAkun">
+            <div class="collapse submenu {{ $akunActive ? 'show' : '' }}" id="collapseAkun">
                 <a class="nav-link sub-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}" href="{{ route('accounts.index') }}">
-                    <i class="fas fa-wallet"></i>
+                    <i class="fas fa-university"></i>
                     <span class="nav-label">Akun Keuangan</span>
                 </a>
                 <a class="nav-link sub-link {{ request()->routeIs('opening-balances.*') ? 'active' : '' }}" href="{{ route('opening-balances.index') }}">
@@ -177,12 +261,14 @@
                     <span class="nav-label">Modal Awal</span>
                 </a>
                 <a class="nav-link sub-link {{ request()->routeIs('opname-saldo.*') ? 'active' : '' }}" href="{{ route('opname-saldo.index') }}">
-                    <i class="fas fa-calculator"></i>
+                    <i class="fas fa-clipboard-check"></i>
                     <span class="nav-label">Opname Saldo</span>
                 </a>
             </div>
         </div>
         @endif
+
+        {{-- ═══ PENGATURAN ═══ --}}
         @if(Auth::user()->isAdmin())
         @php
             $pengaturanActive = request()->routeIs('backups.*') || request()->routeIs('users.*');
@@ -197,7 +283,7 @@
             </a>
             <div class="collapse submenu {{ $pengaturanActive ? 'show' : '' }}" id="collapsePengaturan">
                 <a class="nav-link sub-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-user-shield"></i>
                     <span class="nav-label">Kelola User</span>
                 </a>
                 <a class="nav-link sub-link {{ request()->routeIs('backups.*') ? 'active' : '' }}" href="{{ route('backups.index') }}">
@@ -216,17 +302,6 @@
                 @csrf
                 <button type="submit" class="btn-logout"><i class="fas fa-sign-out-alt me-1"></i>Keluar</button>
             </form>
-        </div>
-        <button class="dark-mode-btn" onclick="toggleDarkMode()" title="Toggle dark mode">
-            <i class="fas fa-moon" id="darkModeIcon"></i>
-        </button>
-        <div class="theme-dots">
-            <span class="theme-dot" style="background:linear-gradient(135deg,#1e3a5f,#3b82f6)" data-theme="" title="Biru (Default)"></span>
-            <span class="theme-dot" style="background:linear-gradient(135deg,#064e3b,#34d399)" data-theme="emerald" title="Hijau"></span>
-            <span class="theme-dot" style="background:linear-gradient(135deg,#2e1065,#a78bfa)" data-theme="purple" title="Ungu"></span>
-            <span class="theme-dot" style="background:linear-gradient(135deg,#4c0519,#fb7185)" data-theme="rose" title="Merah"></span>
-            <span class="theme-dot" style="background:linear-gradient(135deg,#431407,#fb923c)" data-theme="orange" title="Orange"></span>
-            <span class="theme-dot" style="background:linear-gradient(135deg,#0c0c1d,#22d3ee)" data-theme="cyan" title="Cyan"></span>
         </div>
         <span>ADI CELL &copy; {{ date('Y') }}</span>
     </div>
@@ -303,12 +378,54 @@ function confirmAction(title, text = '') {
 
 // Tampilkan notifikasi dari session
 @if(session('success'))
-    showToast('{{ session('success') }}', 'success');
+    showToast(@json(session('success')), 'success');
 @endif
 
 @if(session('error'))
-    showToast('{{ session('error') }}', 'error');
+    showToast(@json(session('error')), 'error');
 @endif
+
+@if(session('warning'))
+    showToast(@json(session('warning')), 'warning');
+@endif
+
+// Client-side table sorting
+document.querySelectorAll('th.sortable').forEach(function(th) {
+    th.addEventListener('click', function() {
+        var table = this.closest('table');
+        var tbody = table.querySelector('tbody');
+        var col = Array.from(this.parentNode.children).indexOf(this);
+        var type = this.dataset.sort || 'string';
+        var asc = !this.classList.contains('asc');
+
+        this.parentNode.querySelectorAll('th.sortable').forEach(function(h) { h.classList.remove('asc', 'desc'); });
+        this.classList.add(asc ? 'asc' : 'desc');
+
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort(function(a, b) {
+            var cellA = a.children[col] ? a.children[col].textContent.trim() : '';
+            var cellB = b.children[col] ? b.children[col].textContent.trim() : '';
+            var valA, valB;
+
+            if (type === 'number') {
+                valA = parseInt(cellA.replace(/[^0-9-]/g, '')) || 0;
+                valB = parseInt(cellB.replace(/[^0-9-]/g, '')) || 0;
+            } else if (type === 'date') {
+                valA = cellA;
+                valB = cellB;
+            } else {
+                valA = cellA.toLowerCase();
+                valB = cellB.toLowerCase();
+            }
+
+            if (valA < valB) return asc ? -1 : 1;
+            if (valA > valB) return asc ? 1 : -1;
+            return 0;
+        });
+
+        rows.forEach(function(row) { tbody.appendChild(row); });
+    });
+});
 </script>
 @stack('scripts')
 </body>

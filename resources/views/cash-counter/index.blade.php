@@ -4,189 +4,163 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="cash-counter">
-    <div class="row g-3">
-        <div class="col-lg-7">
-            <div class="card card-modern mb-3">
-                <div class="card-body p-3">
-                    <ul class="nav nav-tabs border-0 mb-3" id="denomTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="banknotes-tab" data-bs-toggle="tab" data-bs-target="#banknotes" type="button" role="tab" style="font-size:0.85rem;font-weight:600;">
-                                <i class="fas fa-money-bill-wave me-1"></i> Uang Kertas
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="coins-tab" data-bs-toggle="tab" data-bs-target="#coins" type="button" role="tab" style="font-size:0.85rem;font-weight:600;">
-                                <i class="fas fa-coins me-1"></i> Uang Logam
-                            </button>
-                        </li>
-                    </ul>
-                    <div class="tab-content" id="denomTabsContent">
-                        <div class="tab-pane fade show active" id="banknotes" role="tabpanel">
-                            <div class="row g-2" id="banknotes-container"></div>
-                        </div>
-                        <div class="tab-pane fade" id="coins" role="tabpanel">
-                            <div class="row g-2" id="coins-container"></div>
-                        </div>
-                    </div>
-                </div>
+<div class="cc-layout">
+    {{-- LEFT: Denomination Input --}}
+    <div class="cc-denoms">
+        <div class="cc-denom-card">
+            <div class="cc-denom-content">
+                <div id="denom-container" class="cc-denom-grid"></div>
             </div>
         </div>
-        <div class="col-lg-5">
-            <div class="card card-modern mb-3" style="background:var(--bg-card);border:none;border-radius:12px;box-shadow:var(--stat-card-shadow);">
-                <div class="card-body text-center p-4">
-                    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:600;">Total Uang Dihitung</div>
-                    <div style="font-size:2rem;font-weight:800;color:var(--text-primary);letter-spacing:-1px;" id="grand-total">Rp 0</div>
-                    <div class="d-flex justify-content-center gap-4 mt-2">
-                        <div>
-                            <div style="font-size:0.7rem;color:var(--text-muted);">Uang Kertas</div>
-                            <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary);" id="total-banknotes">Rp 0</div>
-                        </div>
-                        <div style="width:1px;background:var(--border-subtle);"></div>
-                        <div>
-                            <div style="font-size:0.7rem;color:var(--text-muted);">Uang Logam</div>
-                            <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary);" id="total-coins">Rp 0</div>
-                        </div>
-                    </div>
+    </div>
+
+    {{-- RIGHT: Summary & Controls --}}
+    <div class="cc-summary">
+        {{-- Total Display --}}
+        <div class="cc-total-card">
+            <div class="cc-total-label">Total Uang Dihitung</div>
+            <div class="cc-total-amount" id="grand-total">Rp 0</div>
+        </div>
+
+        {{-- Account & Target --}}
+        <div class="cc-control-card">
+            <div class="cc-control-row">
+                <div class="cc-control-icon"><i class="fas fa-wallet"></i></div>
+                <div class="cc-control-content">
+                    <div class="cc-control-label">Akun Kas</div>
+                    <select id="account-select" class="cc-select" onchange="onAccountChange()">
+                        @foreach($accounts as $account)
+                        <option value="{{ $account->id }}" data-balance="{{ $balances[$account->id] ?? 0 }}" {{ $cashAccount && $account->id === $cashAccount->id ? 'selected' : '' }}>
+                            {{ $account->name }} ({{ ucfirst($account->type) }})
+                        </option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
 
-            <div class="card card-modern mb-3">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <i class="fas fa-wallet" style="color:var(--theme-primary);font-size:0.9rem;"></i>
-                        <span style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Akun Kas</span>
-                    </div>
-                    @if(!$hasCashAccounts)
-                        <div class="alert alert-warning py-2" style="font-size:0.8rem;">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            Tidak ada akun cash yang aktif. Silakan tambah akun cash terlebih dahulu.
-                        </div>
-                    @endif
-                    <select id="account-select" class="form-select form-select-sm mb-3" style="font-size:0.85rem;" onchange="onAccountChange()">
-                        @foreach($accounts as $account)
-                            <option value="{{ $account->id }}" data-balance="{{ $balances[$account->id] ?? 0 }}" {{ $cashAccount && $account->id === $cashAccount->id ? 'selected' : '' }}>
-                                {{ $account->name }} ({{ ucfirst($account->type) }})
-                            </option>
-                        @endforeach
-                    </select>
+            @if(!$hasCashAccounts)
+            <div class="cc-alert">
+                <i class="fas fa-exclamation-triangle"></i> Tidak ada akun cash aktif
+            </div>
+            @endif
 
-                    <div id="account-balance-info" class="d-none mb-3 p-2 rounded-3" style="background:var(--border-subtle);">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span style="font-size:0.8rem;color:var(--text-muted);">Saldo Sistem:</span>
-                            <span id="system-balance" class="fw-bold" style="font-size:0.9rem;color:var(--text-primary);">Rp 0</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mt-1">
-                            <span style="font-size:0.8rem;color:var(--text-muted);">Uang Fisik:</span>
-                            <span id="physical-balance" class="fw-bold" style="font-size:0.9rem;color:var(--text-primary);">Rp 0</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mt-1 pt-1" style="border-top:1px solid var(--border-subtle);">
-                            <span style="font-size:0.8rem;color:var(--text-muted);">Selisih:</span>
-                            <span id="diff-balance" class="fw-bold" style="font-size:0.9rem;">Rp 0</span>
-                        </div>
-                    </div>
+            <div id="account-balance-info" class="cc-balance-info d-none">
+                <div class="cc-balance-row">
+                    <span>Saldo Sistem</span>
+                    <span id="system-balance" class="fw-bold">Rp 0</span>
+                </div>
+                <div class="cc-balance-row">
+                    <span>Uang Fisik</span>
+                    <span id="physical-balance" class="fw-bold">Rp 0</span>
+                </div>
+                <div class="cc-balance-row cc-balance-total">
+                    <span>Selisih</span>
+                    <span id="diff-balance" class="fw-bold">Rp 0</span>
+                </div>
+            </div>
 
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <i class="fas fa-bullseye" style="color:var(--theme-primary);font-size:0.9rem;"></i>
-                        <span style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Target Kas</span>
-                    </div>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text" style="background:var(--bg-card);border-color:var(--border-subtle);color:var(--text-muted);font-size:0.8rem;">Rp</span>
-                        <input type="number" id="target-amount" class="form-control form-control-sm" min="0" placeholder="Masukkan target..." style="font-size:0.85rem;" oninput="updateTotal()">
-                        <button class="btn btn-sm btn-modern btn-outline-secondary" onclick="fillTargetFromBalance()" title="Isi dari saldo sistem" style="font-size:0.7rem;padding:0.2rem 0.5rem;">
+            <div class="cc-control-row mt-2">
+                <div class="cc-control-icon"><i class="fas fa-bullseye"></i></div>
+                <div class="cc-control-content">
+                    <div class="cc-control-label">Target Kas</div>
+                    <div class="cc-target-input">
+                        <span class="cc-target-prefix">Rp</span>
+                        <input type="number" id="target-amount" class="cc-input" min="0" placeholder="0" oninput="updateTotal()">
+                        <button type="button" class="cc-target-btn" onclick="fillTargetFromBalance()" title="Isi dari saldo sistem">
                             <i class="fas fa-arrow-down"></i>
                         </button>
                     </div>
-                    <div id="target-result-panel" class="mt-2 d-none">
-                        <div class="d-flex justify-content-between align-items-center py-1">
-                            <span style="font-size:0.8rem;color:var(--text-muted);">Status:</span>
-                            <span id="target-status" class="badge rounded-pill" style="font-size:0.75rem;">Sesuai</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center py-1">
-                            <span style="font-size:0.8rem;color:var(--text-muted);">Selisih:</span>
-                            <span id="target-diff" class="fw-bold" style="font-size:0.85rem;">Rp 0</span>
-                        </div>
-                    </div>
-
-                    <div id="adjust-panel" class="mt-3 d-none">
-                        <div class="p-2 rounded-3" style="background:var(--border-subtle);">
-                            <div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:6px;">PENYESUAIAN KAS</div>
-                            <button id="btn-adjust-income" class="btn btn-sm btn-modern btn-success w-100 mb-1 d-none" onclick="createAdjustment('income')">
-                                <i class="fas fa-plus me-1"></i> <span id="adjust-income-text">Buat Pendapatan Penyesuaian</span>
-                            </button>
-                            <button id="btn-adjust-expense" class="btn btn-sm btn-modern btn-danger w-100 d-none" onclick="createAdjustment('expense')">
-                                <i class="fas fa-minus me-1"></i> <span id="adjust-expense-text">Buat Pengeluaran Penyesuaian</span>
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <div class="card card-modern mb-3">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <i class="fas fa-chart-pie" style="color:var(--theme-primary);font-size:0.9rem;"></i>
-                        <span style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Distribusi Denominasi</span>
-                    </div>
-                    <div class="chart-container" style="position:relative;height:180px;">
-                        <canvas id="distribution-chart"></canvas>
-                        <div id="chart-placeholder" class="d-flex flex-column align-items-center justify-content-center" style="position:absolute;inset:0;color:var(--text-muted);font-size:0.8rem;">
-                            <i class="fas fa-info-circle mb-1" style="font-size:1.2rem;"></i>
-                            <span>Masukkan beberapa lembar untuk melihat distribusi</span>
-                        </div>
-                    </div>
+            <div id="target-result-panel" class="cc-target-result d-none">
+                <div class="cc-balance-row">
+                    <span>Status</span>
+                    <span id="target-status" class="badge rounded-pill">Sesuai</span>
+                </div>
+                <div class="cc-balance-row">
+                    <span>Selisih</span>
+                    <span id="target-diff" class="fw-bold">Rp 0</span>
                 </div>
             </div>
 
-            <div class="d-flex gap-2 mb-3">
-                <button class="btn btn-modern btn-secondary flex-fill" onclick="resetCalculator()">
-                    <i class="fas fa-undo-alt me-1"></i> Reset
+            <div id="adjust-panel" class="cc-adjust-panel d-none">
+                <div class="cc-adjust-label">Penyesuaian Kas</div>
+                <button id="btn-adjust-income" class="cc-btn cc-btn-success w-100 d-none" onclick="createAdjustment('income')">
+                    <i class="fas fa-plus"></i> <span id="adjust-income-text">Pendapatan Penyesuaian</span>
                 </button>
-                <button class="btn btn-modern btn-primary flex-fill" onclick="copySummary()">
-                    <i class="fas fa-copy me-1"></i> Salin
-                </button>
-                <button class="btn btn-modern btn-success flex-fill" onclick="openSaveModal()">
-                    <i class="fas fa-save me-1"></i> Simpan
+                <button id="btn-adjust-expense" class="cc-btn cc-btn-danger w-100 d-none" onclick="createAdjustment('expense')">
+                    <i class="fas fa-minus"></i> <span id="adjust-expense-text">Pengeluaran Penyesuaian</span>
                 </button>
             </div>
+        </div>
 
-            <div class="card card-modern">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-history" style="color:var(--theme-primary);font-size:0.9rem;"></i>
-                            <span style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Riwayat Sesi</span>
-                        </div>
-                        <button class="btn btn-sm btn-modern btn-danger" onclick="clearHistory()" style="font-size:0.7rem;">
-                            <i class="fas fa-trash me-1"></i> Hapus Semua
-                        </button>
-                    </div>
-                    <div id="history-list-container">
-                        <div class="text-center text-muted py-3" style="font-size:0.85rem;">Belum ada sesi yang disimpan</div>
+        {{-- Distribution Chart --}}
+        <div class="cc-control-card">
+            <div class="cc-control-row mb-2">
+                <div class="cc-control-icon"><i class="fas fa-chart-pie"></i></div>
+                <div class="cc-control-content">
+                    <div class="cc-control-label">Distribusi Denominasi</div>
+                </div>
+            </div>
+            <div class="cc-chart-wrap">
+                <canvas id="distribution-chart"></canvas>
+                <div id="chart-placeholder" class="cc-chart-placeholder">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Masukkan jumlah untuk melihat distribusi</span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Action Buttons --}}
+        <div class="cc-actions">
+            <button class="cc-btn cc-btn-secondary" onclick="resetCalculator()">
+                <i class="fas fa-undo-alt"></i> Reset
+            </button>
+            <button class="cc-btn cc-btn-primary" onclick="copySummary()">
+                <i class="fas fa-copy"></i> Salin
+            </button>
+            <button class="cc-btn cc-btn-success" onclick="openSaveModal()">
+                <i class="fas fa-save"></i> Simpan
+            </button>
+        </div>
+
+        {{-- History --}}
+        <div class="cc-history-card">
+            <div class="cc-history-header">
+                <div class="cc-control-row">
+                    <div class="cc-control-icon"><i class="fas fa-history"></i></div>
+                    <div class="cc-control-content">
+                        <div class="cc-control-label">Riwayat Sesi</div>
                     </div>
                 </div>
+                <button class="cc-btn-sm cc-btn-danger-sm" onclick="clearHistory()">
+                    <i class="fas fa-trash"></i> Hapus Semua
+                </button>
+            </div>
+            <div id="history-list-container" class="cc-history-list">
+                <div class="cc-history-empty">Belum ada sesi tersimpan</div>
             </div>
         </div>
     </div>
 </div>
 
+{{-- Save Modal --}}
 <div class="modal fade" id="saveModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-modern">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold" style="font-size:1rem;">Simpan Sesi Cash Counter</h5>
+                <h5 class="modal-title fw-bold" style="font-size:1rem;">Simpan Sesi</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">Nama / Catatan Sesi</label>
-                    <input type="text" id="session-title" class="form-control" placeholder="Contoh: Kas Toko Pagi, Setoran Bank...">
+                    <label class="form-label">Nama / Catatan</label>
+                    <input type="text" id="session-title" class="form-control" placeholder="Contoh: Kas Toko Pagi...">
                 </div>
-                <div class="p-3 rounded-3" style="background:var(--border-subtle);">
-                    <div class="d-flex justify-content-between">
-                        <span style="font-size:0.85rem;color:var(--text-muted);">Total yang akan disimpan:</span>
-                        <strong id="modal-total-display" style="font-size:0.95rem;">Rp 0</strong>
-                    </div>
+                <div class="cc-modal-total">
+                    <span>Total</span>
+                    <strong id="modal-total-display">Rp 0</strong>
                 </div>
             </div>
             <div class="modal-footer">
@@ -197,40 +171,229 @@
     </div>
 </div>
 
-<div id="toast" class="toast-notification d-none"></div>
+<div id="toast" class="cc-toast d-none"></div>
 @endsection
 
 @push('styles')
 <style>
-.cash-counter .form-control:focus { box-shadow: none; }
-.cash-counter .nav-tabs .nav-link { color: var(--text-muted); border: none; border-bottom: 2px solid transparent; padding: 0.4rem 0.8rem; }
-.cash-counter .nav-tabs .nav-link.active { color: var(--theme-primary); background: none; border-bottom-color: var(--theme-primary); }
-.cash-counter .nav-tabs .nav-link:hover { color: var(--text-primary); border-bottom-color: transparent; }
+/* Layout */
+.cc-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1rem;
+    align-items: start;
+}
 
-.denom-card {
+/* Denomination Panel */
+.cc-denoms { display: flex; flex-direction: column; }
+
+.cc-denom-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.cc-denom-content { padding: 1rem; }
+
+.cc-denom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+}
+
+/* Denomination Card */
+.cc-denom-item {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: 10px;
     padding: 0.75rem;
-    transition: box-shadow 0.15s;
-    border-left: 4px solid var(--denom-color, var(--theme-primary));
+    border-left: 4px solid var(--item-color, var(--theme-primary));
+    transition: all 0.15s;
 }
-.denom-card:hover { box-shadow: var(--card-shadow-hover); }
 
-.denom-label {
+.cc-denom-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+.cc-denom-label {
     font-weight: 700;
     font-size: 0.8rem;
     color: var(--text-primary);
 }
 
-.denom-controls {
+.cc-denom-controls {
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-top: 6px;
+    margin-top: 0.5rem;
 }
 
-.denom-controls .btn-icon {
+.cc-denom-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.1s;
+    padding: 0;
+}
+
+.cc-denom-btn:hover { background: var(--border-subtle); }
+.cc-denom-btn.cc-minus:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
+.cc-denom-btn.cc-plus:hover { background: rgba(16,185,129,0.1); color: #10b981; }
+
+.cc-denom-count {
+    width: 50px;
+    text-align: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 3px;
+    user-select: none;
+}
+
+.cc-denom-shortcuts {
+    display: flex;
+    gap: 3px;
+    margin-top: 0.35rem;
+}
+
+.cc-shortcut-btn {
+    padding: 2px 6px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.cc-shortcut-btn:hover { background: var(--theme-primary); color: #fff; border-color: var(--theme-primary); }
+
+.cc-denom-subtotal {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 0.35rem;
+    text-align: right;
+}
+
+/* Summary Panel */
+.cc-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: sticky;
+    top: 1rem;
+}
+
+/* Total Card */
+.cc-total-card {
+    background: linear-gradient(135deg, var(--theme-primary), color-mix(in srgb, var(--theme-primary) 80%, #000));
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    color: #fff;
+}
+
+.cc-total-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+    font-weight: 600;
+}
+
+.cc-total-amount {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin: 0.25rem 0;
+}
+
+/* Control Card */
+.cc-control-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 0.85rem;
+}
+
+.cc-control-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.cc-control-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(var(--theme-primary-rgb), 0.08);
+    color: var(--theme-primary);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.cc-control-content { flex: 1; min-width: 0; }
+.cc-control-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem; }
+
+.cc-select {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.cc-select:focus { border-color: var(--theme-primary); }
+
+.cc-input {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.cc-input:focus { border-color: var(--theme-primary); }
+
+.cc-target-input {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.cc-target-prefix {
+    padding: 0.45rem 0.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+}
+
+.cc-target-input .cc-input { flex: 1; }
+
+.cc-target-btn {
     width: 32px;
     height: 32px;
     display: flex;
@@ -239,64 +402,205 @@
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     background: var(--bg-card);
-    color: var(--text-primary);
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.12s;
-    padding: 0;
-}
-.denom-controls .btn-icon:hover { background: var(--border-subtle); }
-.denom-controls .btn-icon:active { transform: scale(0.95); }
-.denom-controls .btn-dec:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
-.denom-controls .btn-inc:hover { background: rgba(16,185,129,0.1); color: #10b981; }
-
-.denom-controls .count-input {
-    width: 56px;
-    text-align: center;
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    font-size: 0.85rem;
-    font-weight: 700;
-    padding: 4px;
-    outline: none;
-}
-.denom-controls .count-input:focus { border-color: var(--theme-primary); }
-
-.denom-shortcuts {
-    display: flex;
-    gap: 3px;
-    margin-top: 4px;
-}
-.denom-shortcuts .btn-shortcut {
-    padding: 2px 8px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    background: var(--bg-card);
     color: var(--text-muted);
-    font-size: 0.65rem;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.cc-target-btn:hover { background: var(--theme-primary); color: #fff; border-color: var(--theme-primary); }
+
+/* Balance Info */
+.cc-balance-info {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(var(--theme-primary-rgb), 0.04);
+}
+
+.cc-balance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.2rem 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.cc-balance-total {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 0.35rem;
+    margin-top: 0.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Target Result */
+.cc-target-result {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(var(--theme-primary-rgb), 0.04);
+}
+
+/* Adjust Panel */
+.cc-adjust-panel {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(var(--theme-primary-rgb), 0.04);
+}
+
+.cc-adjust-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Buttons */
+.cc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+}
+
+.cc-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.cc-btn-primary { background: var(--theme-primary); color: #fff; }
+.cc-btn-success { background: #10b981; color: #fff; }
+.cc-btn-danger { background: #ef4444; color: #fff; }
+.cc-btn-secondary { background: var(--border-subtle); color: var(--text-primary); }
+
+.cc-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cc-btn-sm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.1s;
 }
-.denom-shortcuts .btn-shortcut:hover { background: var(--theme-primary); color: #fff; border-color: var(--theme-primary); }
 
-.denom-subtotal {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-top: 4px;
-    text-align: right;
+.cc-btn-danger-sm { background: rgba(239,68,68,0.1); color: #ef4444; }
+.cc-btn-danger-sm:hover { background: #ef4444; color: #fff; }
+
+.cc-alert {
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(245,158,11,0.1);
+    color: #f59e0b;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.dark-mode .denom-card { border-color: #3b4a5c; }
-.dark-mode .denom-controls .btn-icon { border-color: #3b4a5c; background: #1e293b; }
-.dark-mode .denom-controls .btn-icon:hover { background: #334155; }
-.dark-mode .denom-controls .count-input { border-color: #3b4a5c; background: #1e293b; }
-.dark-mode .denom-shortcuts .btn-shortcut { border-color: #3b4a5c; background: #1e293b; }
+/* Chart */
+.cc-chart-wrap {
+    position: relative;
+    height: 160px;
+}
 
-.toast-notification {
+.cc-chart-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    gap: 0.3rem;
+}
+
+.cc-chart-placeholder i { font-size: 1rem; opacity: 0.5; }
+
+/* History */
+.cc-history-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.cc-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.cc-history-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.cc-history-empty {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.cc-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background 0.1s;
+}
+
+.cc-history-item:hover { background: rgba(var(--theme-primary-rgb), 0.03); }
+.cc-history-item:last-child { border-bottom: none; }
+
+.cc-history-info { flex: 1; min-width: 0; }
+.cc-history-title { font-weight: 600; font-size: 0.8rem; color: var(--text-primary); }
+.cc-history-meta { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+.cc-history-actions { display: flex; gap: 0.25rem; }
+
+.cc-history-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.cc-history-btn-primary { background: rgba(var(--theme-primary-rgb), 0.1); color: var(--theme-primary); }
+.cc-history-btn-primary:hover { background: var(--theme-primary); color: #fff; }
+.cc-history-btn-danger { background: rgba(239,68,68,0.1); color: #ef4444; }
+.cc-history-btn-danger:hover { background: #ef4444; color: #fff; }
+
+/* Toast */
+.cc-toast {
     position: fixed;
     bottom: 20px;
     left: 50%;
@@ -311,24 +615,44 @@
     z-index: 9999;
     border: 1px solid var(--border-subtle);
 }
-.dark-mode .toast-notification { border-color: #3b4a5c; }
+
+/* Modal Total */
+.cc-modal-total {
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .cc-layout { grid-template-columns: 1fr; }
+    .cc-summary { position: static; }
+    .cc-denom-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+
+@media (max-width: 576px) {
+    .cc-denom-grid { grid-template-columns: repeat(2, 1fr); }
+    .cc-total-amount { font-size: 1.5rem; }
+}
 </style>
 @endpush
 
 @push('scripts')
 <script>
 const denoms = [
-    { key: 100000, label: 'Rp 100.000', color: '#f43f5e', group: 'banknotes' },
-    { key: 50000,  label: 'Rp 50.000',  color: '#3b82f6', group: 'banknotes' },
-    { key: 20000,  label: 'Rp 20.000',  color: '#10b981', group: 'banknotes' },
-    { key: 10000,  label: 'Rp 10.000',  color: '#8b5cf6', group: 'banknotes' },
-    { key: 5000,   label: 'Rp 5.000',   color: '#f59e0b', group: 'banknotes' },
-    { key: 2000,   label: 'Rp 2.000',   color: '#6b7280', group: 'banknotes' },
-    { key: 1000,   label: 'Rp 1.000',   color: '#84cc16', group: 'banknotes' },
-    { key: 'c1000', value: 1000, label: 'Koin Rp 1.000', color: '#f97316', group: 'coins' },
-    { key: 'c500',  value: 500,  label: 'Koin Rp 500',   color: '#a855f7', group: 'coins' },
-    { key: 'c200',  value: 200,  label: 'Koin Rp 200',   color: '#14b8a6', group: 'coins' },
-    { key: 'c100',  value: 100,  label: 'Koin Rp 100',   color: '#eab308', group: 'coins' },
+    { key: 100000, label: 'Rp 100.000', color: '#f43f5e' },
+    { key: 50000,  label: 'Rp 50.000',  color: '#3b82f6' },
+    { key: 20000,  label: 'Rp 20.000',  color: '#10b981' },
+    { key: 10000,  label: 'Rp 10.000',  color: '#8b5cf6' },
+    { key: 5000,   label: 'Rp 5.000',   color: '#f59e0b' },
+    { key: 2000,   label: 'Rp 2.000',   color: '#6b7280' },
+    { key: 1000,   label: 'Rp 1.000',   color: '#84cc16' },
+    { key: 'c500',  value: 500,  label: 'Koin Rp 500',   color: '#a855f7' },
 ];
 
 let chartInstance = null;
@@ -342,35 +666,48 @@ function getDenomValue(key) {
 }
 
 function buildCards() {
+    const container = document.getElementById('denom-container');
     denoms.forEach(d => {
-        const col = document.createElement('div');
-        col.className = 'denom-grid-item';
-        col.innerHTML = `
-            <div class="denom-card" style="--denom-color:${d.color};">
-                <div class="denom-label">${d.label}</div>
-                <div class="denom-controls">
-                    <button class="btn-icon btn-dec" onclick="adjustCount('${d.key}',-1)"><i class="fas fa-minus"></i></button>
-                    <input type="number" id="count-${d.key}" class="count-input" min="0" placeholder="0" oninput="updateTotal()">
-                    <button class="btn-icon btn-inc" onclick="adjustCount('${d.key}',1)"><i class="fas fa-plus"></i></button>
-                </div>
-                <div class="denom-shortcuts">
-                    <button class="btn-shortcut" onclick="adjustCount('${d.key}',10)">+10</button>
-                    <button class="btn-shortcut" onclick="adjustCount('${d.key}',50)">+50</button>
-                    <button class="btn-shortcut" onclick="adjustCount('${d.key}',100)">+100</button>
-                </div>
-                <div class="denom-subtotal" id="subtotal-${d.key}">Rp 0</div>
+        const el = document.createElement('div');
+        el.className = 'cc-denom-item';
+        el.style.setProperty('--item-color', d.color);
+        el.innerHTML = `
+            <div class="cc-denom-label">${d.label}</div>
+            <div class="cc-denom-controls">
+                <button type="button" class="cc-denom-btn cc-minus" onclick="adjustCount('${d.key}',-1)"><i class="fas fa-minus"></i></button>
+                <span id="count-${d.key}" class="cc-denom-count" data-value="0">0</span>
+                <button type="button" class="cc-denom-btn cc-plus" onclick="adjustCount('${d.key}',1)"><i class="fas fa-plus"></i></button>
             </div>
+            <div class="cc-denom-shortcuts">
+                <button type="button" class="cc-shortcut-btn" onclick="adjustCount('${d.key}',10)">+10</button>
+                <button type="button" class="cc-shortcut-btn" onclick="adjustCount('${d.key}',50)">+50</button>
+                <button type="button" class="cc-shortcut-btn" onclick="adjustCount('${d.key}',100)">+100</button>
+            </div>
+            <div class="cc-denom-subtotal" id="subtotal-${d.key}">Rp 0</div>
         `;
-        document.getElementById(d.group + '-container').appendChild(col);
+        container.appendChild(el);
     });
 }
 
 function adjustCount(key, change) {
-    const input = document.getElementById('count-' + key);
-    let val = parseInt(input.value) || 0;
+    const el = document.getElementById('count-' + key);
+    let val = parseInt(el.dataset.value) || 0;
     val = Math.max(0, val + change);
-    input.value = val;
+    el.dataset.value = val;
+    el.textContent = val;
     updateTotal();
+}
+
+function getCount(key) {
+    const el = document.getElementById('count-' + key);
+    return parseInt(el.dataset.value) || 0;
+}
+
+function setCount(key, val) {
+    const el = document.getElementById('count-' + key);
+    val = Math.max(0, val);
+    el.dataset.value = val;
+    el.textContent = val;
 }
 
 function formatRupiah(num) {
@@ -378,24 +715,16 @@ function formatRupiah(num) {
 }
 
 function updateTotal() {
-    let totalBanknotes = 0, totalCoins = 0;
+    let grandTotal = 0;
     DENOM_KEYS.forEach(key => {
-        const input = document.getElementById('count-' + key);
-        const count = parseInt(input.value) || 0;
+        const count = getCount(key);
         const value = getDenomValue(key);
         const subtotal = count * value;
         document.getElementById('subtotal-' + key).textContent = formatRupiah(subtotal);
-        if (denoms.find(d => d.key === key).group === 'banknotes') {
-            totalBanknotes += subtotal;
-        } else {
-            totalCoins += subtotal;
-        }
+        grandTotal += subtotal;
     });
-    const grandTotal = totalBanknotes + totalCoins;
 
     document.getElementById('grand-total').textContent = formatRupiah(grandTotal);
-    document.getElementById('total-banknotes').textContent = formatRupiah(totalBanknotes);
-    document.getElementById('total-coins').textContent = formatRupiah(totalCoins);
     document.getElementById('modal-total-display').textContent = formatRupiah(grandTotal);
 
     updateTargetCash(grandTotal);
@@ -416,7 +745,7 @@ function updateTargetCash(grandTotal) {
     const diff = grandTotal - target;
 
     if (grandTotal === target) {
-        statusEl.textContent = 'Pas / Sesuai';
+        statusEl.textContent = 'Pas';
         statusEl.className = 'badge rounded-pill bg-success';
         diffEl.textContent = 'Rp 0';
         diffEl.style.color = 'var(--text-primary)';
@@ -435,21 +764,15 @@ function updateTargetCash(grandTotal) {
 
 function onAccountChange() {
     const select = document.getElementById('account-select');
-    const accountId = select.value;
     const infoPanel = document.getElementById('account-balance-info');
 
-    if (!accountId) {
+    if (!select.value) {
         infoPanel.classList.add('d-none');
         document.getElementById('adjust-panel').classList.add('d-none');
         return;
     }
 
-    const option = select.options[select.selectedIndex];
-    const balance = parseInt(option.dataset.balance) || 0;
-
-    document.getElementById('system-balance').textContent = formatRupiah(balance);
     infoPanel.classList.remove('d-none');
-
     updateAccountBalanceInfo(getGrandTotal());
     updateAdjustPanel(getGrandTotal());
 }
@@ -467,8 +790,6 @@ function fillTargetFromBalance() {
 function updateAccountBalanceInfo(grandTotal) {
     const select = document.getElementById('account-select');
     if (!select.value) return;
-    const infoPanel = document.getElementById('account-balance-info');
-    infoPanel.classList.remove('d-none');
 
     const option = select.options[select.selectedIndex];
     const balance = parseInt(option.dataset.balance) || 0;
@@ -498,21 +819,17 @@ function updateAdjustPanel(grandTotal) {
         return;
     }
 
-    const panel = document.getElementById('adjust-panel');
-    panel.classList.remove('d-none');
-
+    document.getElementById('adjust-panel').classList.remove('d-none');
     const absDiff = Math.abs(diff);
 
     if (diff > 0) {
         document.getElementById('btn-adjust-income').classList.remove('d-none');
         document.getElementById('btn-adjust-expense').classList.add('d-none');
-        document.getElementById('adjust-income-text').textContent =
-            'Buat Pendapatan Penyesuaian +Rp ' + absDiff.toLocaleString('id-ID');
+        document.getElementById('adjust-income-text').textContent = 'Pendapatan +' + formatRupiah(absDiff);
     } else {
         document.getElementById('btn-adjust-income').classList.add('d-none');
         document.getElementById('btn-adjust-expense').classList.remove('d-none');
-        document.getElementById('adjust-expense-text').textContent =
-            'Buat Pengeluaran Penyesuaian -Rp ' + absDiff.toLocaleString('id-ID');
+        document.getElementById('adjust-expense-text').textContent = 'Pengeluaran -' + formatRupiah(absDiff);
     }
 }
 
@@ -521,56 +838,56 @@ function getGrandTotal() {
 }
 
 function createAdjustment(type) {
-    const grandTotal = getGrandTotal();
-    const select = document.getElementById('account-select');
-    const option = select.options[select.selectedIndex];
-    const balance = parseInt(option.dataset.balance) || 0;
-    const diff = Math.abs(grandTotal - balance);
-
     if (!currentSessionId) {
-        showToast('Simpan sesi terlebih dahulu sebelum membuat penyesuaian');
+        showToast('Simpan sesi terlebih dahulu');
         return;
     }
 
-    confirmAction('Buat ' + (type === 'income' ? 'pendapatan' : 'pengeluaran') +
-        ' penyesuaian sebesar Rp ' + diff.toLocaleString('id-ID') + '?').then(ok => {
-        if (!ok) return;
+    // Disable tombol biar gak diklik 2x
+    const btnIncome = document.getElementById('btn-adjust-income');
+    const btnExpense = document.getElementById('btn-adjust-expense');
+    btnIncome.disabled = true;
+    btnExpense.disabled = true;
 
-        const accountId = document.getElementById('account-select').value;
+    const grandTotal = getGrandTotal();
+    const balance = parseInt(document.getElementById('account-select').options[document.getElementById('account-select').selectedIndex].dataset.balance) || 0;
+    const diff = Math.abs(grandTotal - balance);
+
+    confirmAction('Buat ' + (type === 'income' ? 'pendapatan' : 'pengeluaran') + ' penyesuaian ' + formatRupiah(diff) + '?').then(ok => {
+        if (!ok) {
+            btnIncome.disabled = false;
+            btnExpense.disabled = false;
+            return;
+        }
 
         fetch('{{ url("cash-counter/sessions") }}/' + currentSessionId + '/adjust', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-            body: JSON.stringify({ type: type, amount: diff, account_id: accountId })
+            body: JSON.stringify({ type, amount: diff, account_id: document.getElementById('account-select').value })
         })
-        .then(r => {
-            if (!r.ok) { return r.json().then(e => { throw new Error(e.message || 'Gagal membuat penyesuaian'); }); }
-            return r.json();
-        })
+        .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message); }))
         .then(res => {
-            showToast(res.message || 'Penyesuaian berhasil dibuat');
+            showToast(res.message);
             document.getElementById('adjust-panel').classList.add('d-none');
+            btnIncome.disabled = false;
+            btnExpense.disabled = false;
         })
-        .catch(e => showToast(e.message));
+        .catch(e => {
+            showToast(e.message);
+            btnIncome.disabled = false;
+            btnExpense.disabled = false;
+        });
     });
 }
 
-function updateChart(grandTotal) {
-    const labels = [];
-    const data = [];
-    const colors = [];
+function updateChart() {
+    const labels = [], data = [], colors = [];
     const placeholder = document.getElementById('chart-placeholder');
 
     denoms.forEach(d => {
-        const input = document.getElementById('count-' + d.key);
-        const count = parseInt(input.value) || 0;
-        const value = getDenomValue(d.key);
-        const subtotal = count * value;
-        if (subtotal > 0) {
-            labels.push(d.label);
-            data.push(subtotal);
-            colors.push(d.color);
-        }
+        const count = getCount(d.key);
+        const subtotal = count * getDenomValue(d.key);
+        if (subtotal > 0) { labels.push(d.label); data.push(subtotal); colors.push(d.color); }
     });
 
     if (data.length === 0) {
@@ -581,21 +898,14 @@ function updateChart(grandTotal) {
     placeholder.style.display = 'none';
 
     const ctx = document.getElementById('distribution-chart').getContext('2d');
-    if (chartInstance) { chartInstance.destroy(); }
+    if (chartInstance) chartInstance.destroy();
 
     chartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { boxWidth: 12, padding: 8, font: { size: 10 }, color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#1e293b' }
-                }
-            }
+            responsive: true, maintainAspectRatio: false, cutout: '65%',
+            plugins: { legend: { position: 'right', labels: { boxWidth: 10, padding: 6, font: { size: 9 }, color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#1e293b' } } }
         }
     });
 }
@@ -603,9 +913,7 @@ function updateChart(grandTotal) {
 function resetCalculator() {
     confirmAction('Reset semua input?').then(ok => {
         if (!ok) return;
-        DENOM_KEYS.forEach(key => {
-            document.getElementById('count-' + key).value = '';
-        });
+        DENOM_KEYS.forEach(key => { setCount(key, 0); });
         document.getElementById('target-amount').value = '';
         document.getElementById('target-result-panel').classList.add('d-none');
         document.getElementById('adjust-panel').classList.add('d-none');
@@ -618,36 +926,34 @@ function resetCalculator() {
 function copySummary() {
     let text = '=== RINGKASAN KAS ===\n\n';
     denoms.forEach(d => {
-        const input = document.getElementById('count-' + d.key);
-        const count = parseInt(input.value) || 0;
+        const count = getCount(d.key);
         if (count > 0) {
             const value = getDenomValue(d.key);
-            text += d.label + ' : ' + count + ' x Rp ' + value.toLocaleString('id-ID') + ' = Rp ' + (count * value).toLocaleString('id-ID') + '\n';
+            text += d.label + ' : ' + count + ' x ' + formatRupiah(value) + ' = ' + formatRupiah(count * value) + '\n';
         }
     });
-    const totalEl = document.getElementById('grand-total');
-    text += '\nTOTAL: ' + totalEl.textContent;
+    text += '\nTOTAL: ' + document.getElementById('grand-total').textContent;
 
-    const targetInput = document.getElementById('target-amount');
-    const target = parseInt(targetInput.value) || 0;
+    const target = parseInt(document.getElementById('target-amount').value) || 0;
     if (target > 0) {
-        text += '\nTarget Kas: Rp ' + target.toLocaleString('id-ID');
-        const grandTotal = getGrandTotal();
-        const diff = grandTotal - target;
-        text += '\nSelisih: Rp ' + Math.abs(diff).toLocaleString('id-ID') + (diff >= 0 ? ' (Lebih)' : ' (Kurang)');
+        const diff = getGrandTotal() - target;
+        text += '\nTarget: ' + formatRupiah(target);
+        text += '\nSelisih: ' + formatRupiah(Math.abs(diff)) + (diff >= 0 ? ' (Lebih)' : ' (Kurang)');
     }
 
     const select = document.getElementById('account-select');
-    if (select.value) {
-        text += '\nAkun: ' + select.options[select.selectedIndex].text;
-    }
+    if (select.value) text += '\nAkun: ' + select.options[select.selectedIndex].text;
 
-    navigator.clipboard.writeText(text).then(() => showToast('Ringkasan disalin ke clipboard'));
+    navigator.clipboard.writeText(text).then(() => showToast('Ringkasan disalin'));
 }
 
 const saveModal = new bootstrap.Modal(document.getElementById('saveModal'));
 function openSaveModal() {
-    document.getElementById('session-title').value = '';
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const now = new Date();
+    const title = days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    document.getElementById('session-title').value = title;
     saveModal.show();
 }
 
@@ -656,66 +962,42 @@ function saveSession() {
     if (!title) { showToast('Masukkan nama sesi'); return; }
 
     const denominations = {};
-    DENOM_KEYS.forEach(key => {
-        const input = document.getElementById('count-' + key);
-        denominations[key] = parseInt(input.value) || 0;
-    });
-    const totalAmount = getGrandTotal();
-    const targetAmount = parseInt(document.getElementById('target-amount').value) || null;
-    const accountId = document.getElementById('account-select').value || null;
+    DENOM_KEYS.forEach(key => { denominations[key] = getCount(key); });
 
     const body = JSON.stringify({
-        title, denominations, target_amount: targetAmount,
-        total_amount: totalAmount, account_id: accountId
+        title, denominations,
+        target_amount: parseInt(document.getElementById('target-amount').value) || null,
+        total_amount: getGrandTotal(),
+        account_id: document.getElementById('account-select').value || null
     });
 
-    const url = currentSessionId
-        ? '{{ url("cash-counter/sessions") }}/' + currentSessionId
-        : '{{ route("cash-counter.sessions.store") }}';
+    const url = currentSessionId ? '{{ url("cash-counter/sessions") }}/' + currentSessionId : '{{ route("cash-counter.sessions.store") }}';
     const method = currentSessionId ? 'PUT' : 'POST';
 
-    fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        body: body
-    })
-    .then(r => {
-        if (!r.ok) { return r.json().then(e => { throw new Error(e.message || e.exception || 'Gagal menyimpan'); }); }
-        return r.json();
-    })
-    .then(s => {
-        currentSessionId = s.id;
-        savedAccountId = accountId;
-        saveModal.hide();
-        showToast('Sesi disimpan');
-        loadHistory();
-        updateAdjustPanel(getGrandTotal());
-    })
+    fetch(url, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body })
+    .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.message || 'Gagal'); }))
+    .then(s => { currentSessionId = s.id; saveModal.hide(); showToast('Sesi disimpan'); loadHistory(); updateAdjustPanel(getGrandTotal()); })
     .catch(e => showToast(e.message));
 }
 
 function loadHistory() {
     fetch('{{ route("cash-counter.history") }}')
-    .then(r => { if (!r.ok) throw new Error('Gagal muat riwayat'); return r.json(); })
+    .then(r => r.json())
     .then(sessions => {
         const container = document.getElementById('history-list-container');
         if (sessions.length === 0) {
-            container.innerHTML = '<div class="text-center text-muted py-3" style="font-size:0.85rem;">Belum ada sesi yang disimpan</div>';
+            container.innerHTML = '<div class="cc-history-empty">Belum ada sesi tersimpan</div>';
             return;
         }
         container.innerHTML = sessions.map(s => `
-            <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid var(--border-subtle);">
-                <div>
-                    <div class="fw-semibold" style="font-size:0.85rem;color:var(--text-primary);">${escapeHtml(s.title)}</div>
-                    <div style="font-size:0.7rem;color:var(--text-muted);">
-                        ${formatRupiah(s.total_amount)}
-                        ${s.account ? ' &middot; ' + escapeHtml(s.account.name) : ''}
-                        &middot; ${new Date(s.created_at).toLocaleDateString('id-ID')}
-                    </div>
+            <div class="cc-history-item">
+                <div class="cc-history-info">
+                    <div class="cc-history-title">${escapeHtml(s.title)}</div>
+                    <div class="cc-history-meta">${formatRupiah(s.total_amount)}${s.account ? ' &middot; ' + escapeHtml(s.account.name) : ''} &middot; ${new Date(s.created_at).toLocaleDateString('id-ID')}</div>
                 </div>
-                <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-modern btn-primary" style="font-size:0.65rem;padding:0.2rem 0.5rem;" onclick="loadSession(${s.id})"><i class="fas fa-folder-open"></i></button>
-                    <button class="btn btn-sm btn-modern btn-danger" style="font-size:0.65rem;padding:0.2rem 0.5rem;" onclick="deleteSession(${s.id})"><i class="fas fa-trash"></i></button>
+                <div class="cc-history-actions">
+                    <button class="cc-history-btn cc-history-btn-primary" onclick="loadSession(${s.id})" title="Muat"><i class="fas fa-folder-open"></i></button>
+                    <button class="cc-history-btn cc-history-btn-danger" onclick="deleteSession(${s.id})" title="Hapus"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
         `).join('');
@@ -724,19 +1006,12 @@ function loadHistory() {
 
 function loadSession(id) {
     fetch(`{{ url("cash-counter/sessions") }}/${id}`)
-    .then(r => { if (!r.ok) throw new Error('Gagal muat sesi'); return r.json(); })
+    .then(r => r.json())
     .then(s => {
         const data = s.denominations || {};
-        DENOM_KEYS.forEach(key => {
-            document.getElementById('count-' + key).value = data[key] || 0;
-        });
+        DENOM_KEYS.forEach(key => { setCount(key, data[key] || 0); });
         if (s.target_amount) document.getElementById('target-amount').value = s.target_amount;
-
-        if (s.account_id) {
-            document.getElementById('account-select').value = s.account_id;
-            onAccountChange();
-        }
-
+        if (s.account_id) { document.getElementById('account-select').value = s.account_id; onAccountChange(); }
         currentSessionId = s.id;
         updateTotal();
         showToast('Sesi "' + escapeHtml(s.title) + '" dimuat');
@@ -746,11 +1021,8 @@ function loadSession(id) {
 function deleteSession(id) {
     confirmDelete('Hapus sesi ini?').then(ok => {
         if (!ok) return;
-        fetch(`{{ url("cash-counter/sessions") }}/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-        })
-        .then(r => { if (!r.ok) throw new Error('Gagal hapus sesi'); return r.json(); })
+        fetch(`{{ url("cash-counter/sessions") }}/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+        .then(r => r.json())
         .then(() => { showToast('Sesi dihapus'); loadHistory(); });
     });
 }
@@ -759,16 +1031,13 @@ function clearHistory() {
     confirmDelete('Hapus semua sesi?').then(ok => {
         if (!ok) return;
         fetch('{{ route("cash-counter.history") }}')
-        .then(r => { if (!r.ok) throw new Error('Gagal muat riwayat'); return r.json(); })
+        .then(r => r.json())
         .then(sessions => {
-            let done = 0;
-            sessions.forEach(s => {
-                fetch(`{{ url("cash-counter/sessions") }}/${s.id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-                }).then(() => { done++; if (done === sessions.length) { showToast('Semua sesi dihapus'); loadHistory(); }});
-            });
-            if (sessions.length === 0) showToast('Tidak ada sesi');
+            if (sessions.length === 0) { showToast('Tidak ada sesi'); return; }
+            Promise.all(sessions.map(s =>
+                fetch(`{{ url("cash-counter/sessions") }}/${s.id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+            )).then(() => { showToast('Semua sesi dihapus'); loadHistory(); })
+            .catch(() => showToast('Gagal menghapus beberapa sesi'));
         });
     });
 }
